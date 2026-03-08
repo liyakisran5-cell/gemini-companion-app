@@ -5,7 +5,7 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  images?: string[]; // base64 data URLs for images
+  images?: string[];
 }
 
 export interface ImageGenerationResult {
@@ -48,16 +48,13 @@ export async function streamChat({
       return;
     }
 
-    // Check content type to distinguish image generation (JSON) from streaming (SSE)
     const contentType = resp.headers.get("content-type") || "";
 
     if (contentType.includes("application/json")) {
-      // Image generation response
       const data: ImageGenerationResult = await resp.json();
       if (data.type === "image_generation" && onImageGenerated) {
         onImageGenerated(data);
       } else {
-        // Fallback: treat content as text
         onDelta(data.content || "");
       }
       onDone();
@@ -119,6 +116,41 @@ export async function streamChat({
     }
 
     onDone();
+  } catch (e) {
+    onError(e instanceof Error ? e.message : "Connection failed");
+  }
+}
+
+/** Edit an existing image via AI */
+export async function editImage({
+  imageUrl,
+  editPrompt,
+  onResult,
+  onError,
+}: {
+  imageUrl: string;
+  editPrompt: string;
+  onResult: (result: ImageGenerationResult) => void;
+  onError: (error: string) => void;
+}) {
+  try {
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ action: "edit_image", imageUrl, editPrompt }),
+    });
+
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({ error: "Request failed" }));
+      onError(body.error || `Error ${resp.status}`);
+      return;
+    }
+
+    const data: ImageGenerationResult = await resp.json();
+    onResult(data);
   } catch (e) {
     onError(e instanceof Error ? e.message : "Connection failed");
   }
