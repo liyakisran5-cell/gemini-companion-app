@@ -16,7 +16,7 @@ const suggestions = [
   { icon: ImageIcon, text: "Describe an artwork idea", color: "text-primary" },
 ];
 
-const ChatInput = ({ onSend, isLoading, showSuggestions = true }: ChatInputProps) => {
+const ChatInput = ({ onSend, isLoading, showSuggestions = true, placeholder = "Ask NovaMind anything..." }: ChatInputProps) => {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
