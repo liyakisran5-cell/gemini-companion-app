@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import InstallPrompt from "./components/InstallPrompt";
 
 const queryClient = new QueryClient();
 
