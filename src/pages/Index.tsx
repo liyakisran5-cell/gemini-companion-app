@@ -484,6 +484,25 @@ const Index = () => {
                       ? () => handleRegenerate(activeConvId!)
                       : undefined
                   }
+                  onImageEdited={(result) => {
+                    // Add edited image as a new assistant message
+                    const editedMsgId = `edited-${Date.now()}`;
+                    setMessagesMap((prev) => ({
+                      ...prev,
+                      [activeConvId!]: [
+                        ...(prev[activeConvId!] || []),
+                        {
+                          id: editedMsgId,
+                          role: "assistant" as const,
+                          content: result.content,
+                          generatedImages: result.images,
+                        },
+                      ],
+                    }));
+                    if (user) {
+                      saveMessage(activeConvId!, user.id, "assistant", result.content).catch(console.error);
+                    }
+                  }}
                 />
               ))}
               <div ref={messagesEndRef} />
