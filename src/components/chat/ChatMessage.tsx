@@ -114,7 +114,7 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`group flex gap-3 px-4 py-4 md:px-8`}
+      className={`group flex gap-3 px-4 py-4 md:px-8 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       <div
         className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
