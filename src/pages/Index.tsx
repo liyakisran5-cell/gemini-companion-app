@@ -7,6 +7,7 @@ import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
+import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import { streamChat, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import {
   loadConversations,
@@ -16,6 +17,21 @@ import {
   saveMessage,
   updateMessageContent,
 } from "@/lib/chat-db";
+
+// Keywords to detect video generation requests
+const VIDEO_KEYWORDS = [
+  "generate a video", "generate video", "create a video", "create video",
+  "make a video", "make video", "generate a clip", "create a clip",
+  "make a clip", "video of", "animate a", "animate this",
+  "ویڈیو بنائیں", "ویڈیو بناؤ",
+  "वीडियो बनाओ", "वीडियो बनाएं",
+];
+
+// Sample mock video URLs for demo
+const MOCK_VIDEOS = [
+  "https://www.w3schools.com/html/mov_bbb.mp4",
+  "https://www.w3schools.com/html/movie.mp4",
+];
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -27,6 +43,13 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [videoSettings, setVideoSettings] = useState<VideoSettings>({
+    model: "sora-2",
+    resolution: "1080p",
+    duration: 8,
+    aspectRatio: "16:9",
+  });
+  const [videoSettingsOpen, setVideoSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
@@ -81,6 +104,49 @@ const Index = () => {
 
   const activeMessages = activeConvId ? messagesMap[activeConvId] || [] : [];
 
+  const isVideoRequest = (text: string) =>
+    VIDEO_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
+
+  const simulateVideoGeneration = async (
+    convId: string,
+    msgId: string,
+    prompt: string,
+    settings: VideoSettings
+  ) => {
+    // Simulate progress over ~6 seconds
+    for (let progress = 0; progress <= 100; progress += 5) {
+      await new Promise((r) => setTimeout(r, 300));
+      setMessagesMap((prev) => ({
+        ...prev,
+        [convId]: prev[convId].map((m) =>
+          m.id === msgId ? { ...m, videoProgress: progress } : m
+        ),
+      }));
+    }
+
+    // Pick a mock video
+    const mockUrl = MOCK_VIDEOS[Math.floor(Math.random() * MOCK_VIDEOS.length)];
+
+    setMessagesMap((prev) => ({
+      ...prev,
+      [convId]: prev[convId].map((m) =>
+        m.id === msgId
+          ? {
+              ...m,
+              videoProgress: 100,
+              generatedVideo: {
+                url: mockUrl,
+                model: settings.model,
+                resolution: settings.resolution,
+                duration: settings.duration,
+                aspectRatio: settings.aspectRatio,
+              },
+            }
+          : m
+      ),
+    }));
+  };
+
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
     setIsLoading(true);
@@ -131,6 +197,32 @@ const Index = () => {
       }));
     } catch (e) {
       console.error("Failed to save user message", e);
+    }
+
+    // Check if this is a video generation request
+    if (isVideoRequest(text)) {
+      const assistantTempId = `temp-ai-${Date.now()}`;
+      const modelName = videoSettings.model === "sora-2" ? "Sora 2" : "Veo 3.1";
+      const content = `🎬 Generating video with **${modelName}**\n\n**Prompt:** ${text}\n**Settings:** ${videoSettings.resolution} · ${videoSettings.duration}s · ${videoSettings.aspectRatio}`;
+
+      setMessagesMap((prev) => ({
+        ...prev,
+        [convId!]: [
+          ...(prev[convId!] || []),
+          { id: assistantTempId, role: "assistant" as const, content, videoProgress: 0 },
+        ],
+      }));
+
+      const capturedConvId = convId!;
+      simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
+        setIsLoading(false);
+        try {
+          await saveMessage(capturedConvId, user.id, "assistant", content);
+        } catch (e) {
+          console.error("Failed to save video message", e);
+        }
+      });
+      return;
     }
 
     // Build API messages
@@ -381,6 +473,15 @@ const Index = () => {
               <div ref={messagesEndRef} />
             </div>
           )}
+        </div>
+
+        <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
+          <VideoSettingsPanel
+            settings={videoSettings}
+            onChange={setVideoSettings}
+            isOpen={videoSettingsOpen}
+            onToggle={() => setVideoSettingsOpen(!videoSettingsOpen)}
+          />
         </div>
 
         <ChatInput
