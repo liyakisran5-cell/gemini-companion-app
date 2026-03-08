@@ -194,6 +194,7 @@ const Index = () => {
         }));
       },
     });
+  };
 
   const handleRegenerate = async (convId: string) => {
     if (!user || isLoading) return;
