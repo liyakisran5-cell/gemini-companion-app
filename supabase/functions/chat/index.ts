@@ -8,19 +8,33 @@ const corsHeaders = {
 
 // Keywords that indicate an image generation request (multilingual)
 const IMAGE_KEYWORDS = [
-  // English
-  "generate an image", "generate image", "create an image", "create image",
-  "draw", "make an image", "make image", "paint", "sketch",
+  // English - broad patterns
+  "generate an image", "generate image", "generate a image",
+  "create an image", "create image", "create a image",
+  "make an image", "make image", "make a image",
   "generate a picture", "generate picture", "create a picture", "create picture",
-  "make a picture", "make picture", "show me an image", "show me a picture",
+  "make a picture", "make picture",
   "generate a photo", "create a photo", "make a photo",
+  "generate a thumbnail", "create a thumbnail", "make a thumbnail",
+  "create thumbnail", "generate thumbnail", "make thumbnail",
+  "generate a wallpaper", "create a wallpaper", "make a wallpaper",
+  "create wallpaper", "generate wallpaper", "make wallpaper",
+  "generate a logo", "create a logo", "make a logo",
+  "generate a illustration", "create a illustration", "create an illustration",
+  "draw me", "draw a", "draw an", "draw the",
+  "paint me", "paint a", "paint an", "paint the",
+  "sketch me", "sketch a", "sketch an", "sketch the",
+  "show me an image", "show me a picture", "show me a photo",
+  "design a", "design an", "design me",
   // Urdu
-  "تصویر بنائیں", "تصویر بناؤ", "تصویر", "تصویر بنا دو",
+  "تصویر بنائیں", "تصویر بناؤ", "تصویر بنا دو", "تصویر بنا",
   "فوٹو بنائیں", "فوٹو بناؤ", "فوٹو بنا دو",
+  "تھمب نیل بنائیں", "تھمب نیل بناؤ", "تھمب نیل بنا",
   "پینٹ کرو", "ڈرا کرو",
   // Hindi
   "तस्वीर बनाओ", "तस्वीर बनाएं", "चित्र बनाओ", "चित्र बनाएं",
   "फोटो बनाओ", "फोटो बनाएं", "इमेज बनाओ", "इमेज बनाएं",
+  "थंबनेल बनाओ", "थंबनेल बनाएं",
   "ड्रा करो", "पेंट करो",
 ];
 
