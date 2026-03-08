@@ -104,6 +104,49 @@ const Index = () => {
 
   const activeMessages = activeConvId ? messagesMap[activeConvId] || [] : [];
 
+  const isVideoRequest = (text: string) =>
+    VIDEO_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
+
+  const simulateVideoGeneration = async (
+    convId: string,
+    msgId: string,
+    prompt: string,
+    settings: VideoSettings
+  ) => {
+    // Simulate progress over ~6 seconds
+    for (let progress = 0; progress <= 100; progress += 5) {
+      await new Promise((r) => setTimeout(r, 300));
+      setMessagesMap((prev) => ({
+        ...prev,
+        [convId]: prev[convId].map((m) =>
+          m.id === msgId ? { ...m, videoProgress: progress } : m
+        ),
+      }));
+    }
+
+    // Pick a mock video
+    const mockUrl = MOCK_VIDEOS[Math.floor(Math.random() * MOCK_VIDEOS.length)];
+
+    setMessagesMap((prev) => ({
+      ...prev,
+      [convId]: prev[convId].map((m) =>
+        m.id === msgId
+          ? {
+              ...m,
+              videoProgress: 100,
+              generatedVideo: {
+                url: mockUrl,
+                model: settings.model,
+                resolution: settings.resolution,
+                duration: settings.duration,
+                aspectRatio: settings.aspectRatio,
+              },
+            }
+          : m
+      ),
+    }));
+  };
+
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
     setIsLoading(true);
