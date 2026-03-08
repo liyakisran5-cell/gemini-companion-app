@@ -190,6 +190,63 @@ const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) =
                   ))}
                 </div>
               )}
+              {/* Video generation progress */}
+              {message.videoProgress !== undefined && message.videoProgress < 100 && !message.generatedVideo && (
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Video size={14} className="animate-pulse text-primary" />
+                    <span className="font-display text-xs">Generating video...</span>
+                    <span className="font-mono text-[10px] text-primary">{message.videoProgress}%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                    <motion.div
+                      className="h-full rounded-full bg-primary"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${message.videoProgress}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                </div>
+              )}
+              {/* Generated video */}
+              {message.generatedVideo && (
+                <div className="group/vid mt-4 space-y-2">
+                  <div className="relative overflow-hidden rounded-xl border border-border bg-secondary/50">
+                    <video
+                      src={message.generatedVideo.url}
+                      controls
+                      className="w-full max-h-[400px]"
+                      style={{
+                        aspectRatio: message.generatedVideo.aspectRatio.replace(":", "/"),
+                      }}
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-secondary px-2 py-0.5 font-display text-[10px] font-medium text-muted-foreground">
+                        {message.generatedVideo.model === "sora-2" ? "Sora 2" : "Veo 3.1"}
+                      </span>
+                      <span className="font-display text-[10px] text-muted-foreground">
+                        {message.generatedVideo.resolution} · {message.generatedVideo.duration}s · {message.generatedVideo.aspectRatio}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = message.generatedVideo!.url;
+                        link.download = `novamind-video-${Date.now()}.mp4`;
+                        link.click();
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg bg-secondary px-2.5 py-1.5 font-display text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      <Download size={12} />
+                      Download
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
           {isStreaming && (
