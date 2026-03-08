@@ -114,7 +114,7 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`group flex gap-3 px-4 py-4 md:px-8`}
+      className={`group flex gap-3 px-4 py-4 md:px-8 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       <div
         className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
@@ -126,14 +126,14 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
         {isUser ? <User size={15} /> : <Bot size={15} />}
       </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="mb-1 font-display text-xs font-medium text-muted-foreground">
+      <div className={`min-w-0 flex-1 ${isUser ? "text-right" : ""}`}>
+        <p className={`mb-1 font-display text-xs font-medium text-muted-foreground ${isUser ? "text-right" : ""}`}>
           {isUser ? "You" : "NovaMind"}
         </p>
 
         {/* Attachments */}
         {attachments.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className={`mb-2 flex flex-wrap gap-2 ${isUser ? "justify-end" : ""}`}>
             {attachments.map((att) =>
               att.type === "image" && att.preview ? (
                 <div
@@ -165,7 +165,7 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
         )}
 
         <div
-          className={`rounded-2xl px-4 py-3 font-display text-sm leading-relaxed ${
+          className={`inline-block rounded-2xl px-4 py-3 font-display text-sm leading-relaxed ${
             isUser
               ? "bg-chat-user text-foreground"
               : "bg-transparent text-foreground/90"
