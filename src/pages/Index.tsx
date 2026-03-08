@@ -1,20 +1,30 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
 import { streamChat, attachmentsToImages, ChatMessage as ChatMsg } from "@/lib/chat-stream";
-
-let convCounter = 0;
+import {
+  loadConversations,
+  createConversation as dbCreateConv,
+  deleteConversation as dbDeleteConv,
+  loadMessages,
+  saveMessage,
+  updateMessageContent,
+} from "@/lib/chat-db";
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingId, setStreamingId] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
@@ -23,6 +33,41 @@ const Index = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Load conversations on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const convs = await loadConversations();
+        setConversations(
+          convs.map((c) => ({
+            id: c.id,
+            title: c.title,
+            timestamp: new Date(c.updated_at),
+          }))
+        );
+      } catch (e) {
+        console.error("Failed to load conversations", e);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Load messages when active conversation changes
+  useEffect(() => {
+    if (!activeConvId || messagesMap[activeConvId]) return;
+    const load = async () => {
+      try {
+        const msgs = await loadMessages(activeConvId);
+        setMessagesMap((prev) => ({ ...prev, [activeConvId]: msgs }));
+      } catch (e) {
+        console.error("Failed to load messages", e);
+      }
+    };
+    load();
+  }, [activeConvId, messagesMap]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,47 +79,65 @@ const Index = () => {
 
   const activeMessages = activeConvId ? messagesMap[activeConvId] || [] : [];
 
-  const createConversation = (firstMessage: string): string => {
-    const id = `conv-${++convCounter}`;
-    const title = firstMessage.length > 30 ? firstMessage.slice(0, 30) + "…" : firstMessage;
-    setConversations((prev) => [{ id, title, timestamp: new Date() }, ...prev]);
-    setMessagesMap((prev) => ({ ...prev, [id]: [] }));
-    setActiveConvId(id);
-    setSidebarOpen(false);
-    return id;
-  };
-
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
+    if (!user) return;
     setIsLoading(true);
+
     let convId = activeConvId;
 
+    // Create conversation in DB if needed
     if (!convId) {
-      convId = createConversation(text);
+      try {
+        const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
+        const dbConv = await dbCreateConv(user.id, title);
+        convId = dbConv.id;
+        setConversations((prev) => [
+          { id: dbConv.id, title: dbConv.title, timestamp: new Date(dbConv.created_at) },
+          ...prev,
+        ]);
+        setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
+        setActiveConvId(convId);
+        setSidebarOpen(false);
+      } catch (e) {
+        toast.error("Failed to create conversation");
+        setIsLoading(false);
+        return;
+      }
     }
 
+    // Save user message to DB
     const userMsg: Message = {
-      id: `msg-${Date.now()}-user`,
+      id: `temp-${Date.now()}`,
       role: "user",
       content: text,
       attachments: attachments.length > 0 ? attachments : undefined,
     };
-
-    // Get existing messages for context
-    const existingMessages = messagesMap[convId] || [];
 
     setMessagesMap((prev) => ({
       ...prev,
       [convId!]: [...(prev[convId!] || []), userMsg],
     }));
 
-    // Build API messages from conversation history
+    try {
+      const savedId = await saveMessage(convId, user.id, "user", text, attachments);
+      userMsg.id = savedId;
+      setMessagesMap((prev) => ({
+        ...prev,
+        [convId!]: prev[convId!].map((m) =>
+          m.id.startsWith("temp-") && m.content === text ? { ...m, id: savedId } : m
+        ),
+      }));
+    } catch (e) {
+      console.error("Failed to save user message", e);
+    }
+
+    // Build API messages
+    const existingMessages = messagesMap[convId!] || [];
     const apiMessages: ChatMsg[] = existingMessages.map((m) => ({
       role: m.role,
       content: m.content,
       images: m.attachments ? attachmentsToImages(m.attachments) : undefined,
     }));
-
-    // Add current user message
     const images = attachmentsToImages(attachments);
     apiMessages.push({
       role: "user",
@@ -83,17 +146,15 @@ const Index = () => {
     });
 
     // Create assistant message placeholder
-    const assistantId = `msg-${Date.now()}-ai`;
+    const assistantTempId = `temp-ai-${Date.now()}`;
     setMessagesMap((prev) => ({
       ...prev,
-      [convId!]: [
-        ...(prev[convId!] || []),
-        { id: assistantId, role: "assistant", content: "" },
-      ],
+      [convId!]: [...(prev[convId!] || []), { id: assistantTempId, role: "assistant", content: "" }],
     }));
-    setStreamingId(assistantId);
+    setStreamingId(assistantTempId);
 
     let assistantSoFar = "";
+    const capturedConvId = convId;
 
     await streamChat({
       messages: apiMessages,
@@ -102,23 +163,34 @@ const Index = () => {
         const captured = assistantSoFar;
         setMessagesMap((prev) => ({
           ...prev,
-          [convId!]: prev[convId!].map((m) =>
-            m.id === assistantId ? { ...m, content: captured } : m
+          [capturedConvId!]: prev[capturedConvId!].map((m) =>
+            m.id === assistantTempId ? { ...m, content: captured } : m
           ),
         }));
       },
-      onDone: () => {
+      onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
+        // Save assistant message to DB
+        try {
+          const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
+          setMessagesMap((prev) => ({
+            ...prev,
+            [capturedConvId!]: prev[capturedConvId!].map((m) =>
+              m.id === assistantTempId ? { ...m, id: savedId } : m
+            ),
+          }));
+        } catch (e) {
+          console.error("Failed to save assistant message", e);
+        }
       },
       onError: (error) => {
         toast.error(error);
         setIsLoading(false);
         setStreamingId(null);
-        // Remove empty assistant message on error
         setMessagesMap((prev) => ({
           ...prev,
-          [convId!]: prev[convId!].filter((m) => m.id !== assistantId),
+          [capturedConvId!]: prev[capturedConvId!].filter((m) => m.id !== assistantTempId),
         }));
       },
     });
@@ -129,15 +201,28 @@ const Index = () => {
     setSidebarOpen(false);
   };
 
-  const handleDeleteConv = (id: string) => {
-    setConversations((prev) => prev.filter((c) => c.id !== id));
-    setMessagesMap((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-    if (activeConvId === id) setActiveConvId(null);
+  const handleDeleteConv = async (id: string) => {
+    try {
+      await dbDeleteConv(id);
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      setMessagesMap((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      if (activeConvId === id) setActiveConvId(null);
+    } catch (e) {
+      toast.error("Failed to delete conversation");
+    }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-background">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -166,6 +251,13 @@ const Index = () => {
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-display text-[10px] font-semibold text-primary">
               NovaMind v1
             </span>
+            <button
+              onClick={signOut}
+              title="Sign out"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </header>
 
