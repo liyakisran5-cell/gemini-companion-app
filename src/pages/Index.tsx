@@ -182,20 +182,22 @@ const Index = () => {
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
 
-    // Check credits before proceeding
+    // Check credits before proceeding (skip for admin/free access)
     const isVideo = isVideoRequest(text);
-    try {
-      const credits = await getUserCredits(user.id);
-      if (isVideo && credits.video_credits <= 0) {
-        toast.error("No video credits! Invite friends to earn credits 🎁");
-        return;
+    if (!userHasFreeAccess) {
+      try {
+        const credits = await getUserCredits(user.id);
+        if (isVideo && credits.video_credits <= 0) {
+          toast.error("No video credits! Invite friends to earn credits 🎁");
+          return;
+        }
+        if (!isVideo && credits.image_credits <= 0) {
+          toast.error("No image credits! Invite friends to earn credits 🎁");
+          return;
+        }
+      } catch (e) {
+        console.error("Credit check failed", e);
       }
-      if (!isVideo && credits.image_credits <= 0) {
-        toast.error("No image credits! Invite friends to earn credits 🎁");
-        return;
-      }
-    } catch (e) {
-      console.error("Credit check failed", e);
     }
 
     setIsLoading(true);
