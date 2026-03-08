@@ -114,8 +114,14 @@ const Index = () => {
 
   const activeMessages = activeConvId ? messagesMap[activeConvId] || [] : [];
 
-  const isVideoRequest = (text: string) =>
-    VIDEO_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
+  const isVideoRequest = (text: string) => {
+    const lower = text.toLowerCase();
+    // Broad check: if it contains "video" or "clip" + action intent, treat as video
+    const hasVideoWord = lower.includes("video") || lower.includes("clip") || lower.includes("animate");
+    const hasActionWord = /\b(make|create|generate|produce|build|render|show|give|want|need|get)\b/.test(lower);
+    if (hasVideoWord && hasActionWord) return true;
+    return VIDEO_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+  };
 
   const simulateVideoGeneration = async (
     convId: string,
