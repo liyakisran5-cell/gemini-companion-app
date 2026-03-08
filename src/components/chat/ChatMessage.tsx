@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { Bot, User, FileText, X } from "lucide-react";
+import { Bot, User, FileText, Copy, Check, RefreshCw, ThumbsUp, ThumbsDown } from "lucide-react";
+import { toast } from "sonner";
 
 export interface Attachment {
   id: string;
   file: File;
-  preview?: string; // data URL for images
+  preview?: string;
   type: "image" | "file";
 }
 
@@ -19,18 +21,28 @@ export interface Message {
 interface ChatMessageProps {
   message: Message;
   isStreaming?: boolean;
+  onRegenerate?: () => void;
 }
 
-const ChatMessage = ({ message, isStreaming }: ChatMessageProps) => {
+const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) => {
   const isUser = message.role === "user";
   const attachments = message.attachments || [];
+  const [copied, setCopied] = useState(false);
+  const [rating, setRating] = useState<"up" | "down" | null>(null);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`flex gap-3 px-4 py-4 md:px-8`}
+      className={`group flex gap-3 px-4 py-4 md:px-8`}
     >
       <div
         className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
@@ -102,6 +114,50 @@ const ChatMessage = ({ message, isStreaming }: ChatMessageProps) => {
             />
           )}
         </div>
+
+        {/* Action buttons for assistant messages */}
+        {!isUser && !isStreaming && message.content && (
+          <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              onClick={handleCopy}
+              title="Copy"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+            {onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                title="Regenerate"
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <RefreshCw size={14} />
+              </button>
+            )}
+            <button
+              onClick={() => setRating(rating === "up" ? null : "up")}
+              title="Good response"
+              className={`rounded-md p-1.5 transition-colors ${
+                rating === "up"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <ThumbsUp size={14} />
+            </button>
+            <button
+              onClick={() => setRating(rating === "down" ? null : "down")}
+              title="Bad response"
+              className={`rounded-md p-1.5 transition-colors ${
+                rating === "down"
+                  ? "text-destructive"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <ThumbsDown size={14} />
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );
