@@ -1,4 +1,4 @@
-import { Plus, MessageSquare, Trash2, Menu, X } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Menu, X, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface Conversation {
@@ -15,6 +15,7 @@ interface ChatSidebarProps {
   onDelete: (id: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  onSignOut: () => void;
 }
 
 const ChatSidebar = ({
@@ -25,6 +26,7 @@ const ChatSidebar = ({
   onDelete,
   isOpen,
   onToggle,
+  onSignOut,
 }: ChatSidebarProps) => {
   return (
     <>
@@ -95,6 +97,17 @@ const ChatSidebar = ({
               </button>
             </motion.div>
           ))}
+        </div>
+
+        {/* Sign Out */}
+        <div className="border-t border-border p-3">
+          <button
+            onClick={onSignOut}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 font-display text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
         </div>
       </motion.aside>
 

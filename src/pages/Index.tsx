@@ -477,6 +477,7 @@ const Index = () => {
         onDelete={handleDeleteConv}
         isOpen={isDesktop || sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onSignOut={signOut}
       />
 
       <main className="flex flex-1 flex-col overflow-hidden">
@@ -514,13 +515,15 @@ const Index = () => {
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <button
-              onClick={signOut}
-              title="Sign out"
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            <a
+              href="https://wa.me/923134499704"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="WhatsApp Help"
+              className="rounded-lg p-1.5 text-green-500 transition-colors hover:bg-green-500/10"
             >
-              <LogOut size={16} />
-            </button>
+              <MessageCircleQuestion size={16} />
+            </a>
           </div>
         </header>
 
@@ -592,16 +595,6 @@ const Index = () => {
           placeholder={generationMode === "video" ? "Describe the video you want..." : "Describe the image you want..."}
         />
       </main>
-      {/* Floating WhatsApp Button */}
-      <a
-        href="https://wa.me/923134499704"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="WhatsApp Help"
-        className="fixed bottom-20 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110 md:bottom-6"
-      >
-        <MessageCircleQuestion size={24} />
-      </a>
     </div>
   );
 };
