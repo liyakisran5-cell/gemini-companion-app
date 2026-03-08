@@ -7,6 +7,7 @@ import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
+import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import { streamChat, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import {
   loadConversations,
@@ -16,6 +17,21 @@ import {
   saveMessage,
   updateMessageContent,
 } from "@/lib/chat-db";
+
+// Keywords to detect video generation requests
+const VIDEO_KEYWORDS = [
+  "generate a video", "generate video", "create a video", "create video",
+  "make a video", "make video", "generate a clip", "create a clip",
+  "make a clip", "video of", "animate a", "animate this",
+  "ویڈیو بنائیں", "ویڈیو بناؤ",
+  "वीडियो बनाओ", "वीडियो बनाएं",
+];
+
+// Sample mock video URLs for demo
+const MOCK_VIDEOS = [
+  "https://www.w3schools.com/html/mov_bbb.mp4",
+  "https://www.w3schools.com/html/movie.mp4",
+];
 
 const Index = () => {
   const { user, signOut } = useAuth();
