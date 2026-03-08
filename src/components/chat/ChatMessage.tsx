@@ -25,11 +25,58 @@ interface ChatMessageProps {
   onRegenerate?: () => void;
 }
 
+/** Parse content for JSON action blocks (e.g. DALL-E) and extract images/text */
+function parseActionContent(content: string): { text: string; extractedImages: string[] } {
+  const extractedImages: string[] = [];
+  // Match JSON blocks that look like action objects
+  const jsonPattern = /```(?:json)?\s*(\{[\s\S]*?\})\s*```|\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?\}/g;
+  
+  const cleaned = content.replace(jsonPattern, (match) => {
+    try {
+      const jsonStr = match.startsWith("```") 
+        ? match.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "") 
+        : match;
+      const parsed = JSON.parse(jsonStr);
+      
+      // Extract image URL from various action formats
+      const url = parsed?.action_input?.url 
+        || parsed?.action_input?.image_url 
+        || parsed?.url 
+        || parsed?.image_url
+        || parsed?.output;
+      
+      if (url && typeof url === "string" && (url.startsWith("http") || url.startsWith("data:"))) {
+        extractedImages.push(url);
+        const prompt = parsed?.action_input?.prompt || parsed?.action_input?.text || "";
+        return prompt ? `*Generated image: ${prompt}*` : "";
+      }
+      // If it's an action JSON but no URL yet, show a friendly message
+      if (parsed?.action) {
+        const prompt = parsed?.action_input?.prompt || parsed?.action_input?.text || "";
+        return prompt ? `*Generating image: ${prompt}...*` : "";
+      }
+    } catch { /* not valid JSON, leave as-is */ }
+    return match;
+  });
+
+  return { text: cleaned.trim(), extractedImages };
+}
+
 const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) => {
   const isUser = message.role === "user";
   const attachments = message.attachments || [];
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState<"up" | "down" | null>(null);
+
+  const { text: parsedContent, extractedImages } = useMemo(
+    () => (isUser ? { text: message.content, extractedImages: [] } : parseActionContent(message.content)),
+    [message.content, isUser]
+  );
+
+  const allGeneratedImages = [
+    ...(message.generatedImages || []),
+    ...extractedImages,
+  ];
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
