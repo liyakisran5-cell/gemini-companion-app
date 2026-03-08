@@ -126,8 +126,8 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
         {isUser ? <User size={15} /> : <Bot size={15} />}
       </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="mb-1 font-display text-xs font-medium text-muted-foreground">
+      <div className={`min-w-0 flex-1 ${isUser ? "text-right" : ""}`}>
+        <p className={`mb-1 font-display text-xs font-medium text-muted-foreground ${isUser ? "text-right" : ""}`}>
           {isUser ? "You" : "NovaMind"}
         </p>
 
