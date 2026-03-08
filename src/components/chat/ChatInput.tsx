@@ -7,6 +7,7 @@ interface ChatInputProps {
   onSend: (message: string, attachments: Attachment[]) => void;
   isLoading: boolean;
   showSuggestions?: boolean;
+  placeholder?: string;
 }
 
 const suggestions = [
@@ -15,7 +16,7 @@ const suggestions = [
   { icon: ImageIcon, text: "Describe an artwork idea", color: "text-primary" },
 ];
 
-const ChatInput = ({ onSend, isLoading, showSuggestions = true }: ChatInputProps) => {
+const ChatInput = ({ onSend, isLoading, showSuggestions = true, placeholder = "Ask NovaMind anything..." }: ChatInputProps) => {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -158,7 +159,7 @@ const ChatInput = ({ onSend, isLoading, showSuggestions = true }: ChatInputProps
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask NovaMind anything..."
+          placeholder={placeholder}
           rows={1}
           className="w-full resize-none bg-transparent px-4 pb-12 pt-4 font-display text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />

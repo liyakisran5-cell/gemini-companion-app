@@ -8,6 +8,7 @@ import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage"
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
+import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import {
   loadConversations,
@@ -60,6 +61,7 @@ const Index = () => {
     aspectRatio: "16:9",
   });
   const [videoSettingsOpen, setVideoSettingsOpen] = useState(false);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("image");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
@@ -511,18 +513,24 @@ const Index = () => {
         </div>
 
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
-          <VideoSettingsPanel
-            settings={videoSettings}
-            onChange={setVideoSettings}
-            isOpen={videoSettingsOpen}
-            onToggle={() => setVideoSettingsOpen(!videoSettingsOpen)}
-          />
+          <div className="mb-3 flex items-center gap-3">
+            <GenerationModeSelector mode={generationMode} onChange={setGenerationMode} />
+          </div>
+          {generationMode === "video" && (
+            <VideoSettingsPanel
+              settings={videoSettings}
+              onChange={setVideoSettings}
+              isOpen={videoSettingsOpen}
+              onToggle={() => setVideoSettingsOpen(!videoSettingsOpen)}
+            />
+          )}
         </div>
 
         <ChatInput
           onSend={handleSend}
           isLoading={isLoading}
           showSuggestions={activeMessages.length === 0}
+          placeholder={generationMode === "video" ? "Describe the video you want..." : "Describe the image you want..."}
         />
       </main>
     </div>
