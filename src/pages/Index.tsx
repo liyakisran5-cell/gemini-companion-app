@@ -253,6 +253,8 @@ const Index = () => {
       }));
 
       const capturedConvId = convId!;
+      // Deduct video credit
+      await useVideoCredit(user.id);
       simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
         setIsLoading(false);
         try {
