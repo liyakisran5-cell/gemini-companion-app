@@ -159,7 +159,7 @@ const ChatInput = ({ onSend, isLoading, showSuggestions = true, placeholder = "A
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask NovaMind anything..."
+          placeholder={placeholder}
           rows={1}
           className="w-full resize-none bg-transparent px-4 pb-12 pt-4 font-display text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
