@@ -72,11 +72,14 @@ function parseActionContent(content: string): { text: string; extractedImages: s
   return { text: cleaned.trim(), extractedImages };
 }
 
-const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) => {
+const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: ChatMessageProps) => {
   const isUser = message.role === "user";
   const attachments = message.attachments || [];
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState<"up" | "down" | null>(null);
+  const [editingImageIdx, setEditingImageIdx] = useState<number | null>(null);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [isEditingImage, setIsEditingImage] = useState(false);
 
   const { text: parsedContent, extractedImages } = useMemo(
     () => (isUser ? { text: message.content, extractedImages: [] } : parseActionContent(message.content)),
