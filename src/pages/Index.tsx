@@ -548,6 +548,8 @@ const Index = () => {
           )}
         </div>
 
+        <ReferralPanel />
+
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
           <div className="mb-3 flex items-center gap-3">
             <GenerationModeSelector mode={generationMode} onChange={setGenerationMode} />
