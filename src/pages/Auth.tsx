@@ -14,6 +14,7 @@ const isCustomDomain = () =>
 
 const Auth = () => {
   const { signIn, signUp, resetPassword } = useAuth();
+  const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
@@ -21,6 +22,12 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [refCode] = useState(() => searchParams.get("ref") || "");
+
+  // If ref code exists, default to signup
+  useEffect(() => {
+    if (refCode) setIsSignUp(true);
+  }, [refCode]);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
