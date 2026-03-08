@@ -117,7 +117,7 @@ const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) =
 
         {/* Action buttons for assistant messages */}
         {!isUser && !isStreaming && message.content && (
-          <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="mt-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 transition-opacity md:group-hover:opacity-100">
             <button
               onClick={handleCopy}
               title="Copy"
