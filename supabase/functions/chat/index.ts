@@ -39,6 +39,14 @@ const IMAGE_KEYWORDS = [
   "ड्रा करो", "पेंट करो",
 ];
 
+// Patterns that indicate a visual scene description (should route to image generation)
+const SCENE_PATTERNS = [
+  /^a\s+(dynamic|cinematic|dramatic|beautiful|stunning|realistic|detailed|photorealistic)\s+(shot|scene|view|image|picture|photo|portrait|landscape)/i,
+  /^(a|an|the)\s+\w+\s+(shot|scene|view)\s+of/i,
+  /\b(cinematic|photorealistic|hyper-?realistic|8k|4k|ultra.?hd)\b.*\b(shot|scene|view|image|render)\b/i,
+  /\b(camera|tracking shot|wide angle|close.?up|aerial|drone)\b/i,
+];
+
 function getTextContent(messages: any[]): string {
   const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
   if (!lastUserMsg) return "";
