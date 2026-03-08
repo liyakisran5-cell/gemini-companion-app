@@ -475,6 +475,15 @@ const Index = () => {
           )}
         </div>
 
+        <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
+          <VideoSettingsPanel
+            settings={videoSettings}
+            onChange={setVideoSettings}
+            isOpen={videoSettingsOpen}
+            onToggle={() => setVideoSettingsOpen(!videoSettingsOpen)}
+          />
+        </div>
+
         <ChatInput
           onSend={handleSend}
           isLoading={isLoading}
