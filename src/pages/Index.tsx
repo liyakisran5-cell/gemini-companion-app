@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { LogOut, Sun, Moon, Images, Shield } from "lucide-react";
+import { LogOut, Sun, Moon, Images, Shield, MessageCircleQuestion } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -500,6 +500,15 @@ const Index = () => {
                 <Shield size={16} />
               </button>
             )}
+            <a
+              href="https://wa.me/923134499704"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="WhatsApp Help"
+              className="rounded-lg p-1.5 text-green-500 transition-colors hover:bg-green-500/10"
+            >
+              <MessageCircleQuestion size={16} />
+            </a>
             <button
               onClick={() => navigate("/gallery")}
               title="Batch Gallery"
