@@ -266,11 +266,16 @@ const Index = () => {
             <WelcomeScreen onSuggestion={(text) => handleSend(text)} />
           ) : (
             <div className="mx-auto max-w-3xl py-4">
-              {activeMessages.map((msg) => (
+              {activeMessages.map((msg, idx) => (
                 <ChatMessage
                   key={msg.id}
                   message={msg}
                   isStreaming={msg.id === streamingId}
+                  onRegenerate={
+                    msg.role === "assistant" && idx === activeMessages.length - 1 && !isLoading
+                      ? () => handleRegenerate(activeConvId!)
+                      : undefined
+                  }
                 />
               ))}
               <div ref={messagesEndRef} />
