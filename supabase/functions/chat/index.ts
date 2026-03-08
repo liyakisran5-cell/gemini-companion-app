@@ -58,8 +58,13 @@ function getTextContent(messages: any[]): string {
 }
 
 function isImageRequest(messages: any[]): boolean {
-  const content = getTextContent(messages).toLowerCase();
-  return IMAGE_KEYWORDS.some((kw) => content.includes(kw.toLowerCase()));
+  const content = getTextContent(messages);
+  const lower = content.toLowerCase();
+  // Check explicit keywords
+  if (IMAGE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()))) return true;
+  // Check scene description patterns (descriptive prompts that are clearly visual)
+  if (SCENE_PATTERNS.some((pat) => pat.test(content))) return true;
+  return false;
 }
 
 function handleError(status: number, fallbackMsg: string) {
