@@ -165,7 +165,7 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
         )}
 
         <div
-          className={`rounded-2xl px-4 py-3 font-display text-sm leading-relaxed ${
+          className={`inline-block rounded-2xl px-4 py-3 font-display text-sm leading-relaxed ${
             isUser
               ? "bg-chat-user text-foreground"
               : "bg-transparent text-foreground/90"
