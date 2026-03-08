@@ -61,6 +61,7 @@ const Index = () => {
     aspectRatio: "16:9",
   });
   const [videoSettingsOpen, setVideoSettingsOpen] = useState(false);
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("image");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
