@@ -26,6 +26,7 @@ const ChatSidebar = ({
   onDelete,
   isOpen,
   onToggle,
+  onSignOut,
 }: ChatSidebarProps) => {
   return (
     <>
