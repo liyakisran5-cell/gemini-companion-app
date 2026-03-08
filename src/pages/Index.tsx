@@ -491,6 +491,15 @@ const Index = () => {
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-display text-[10px] font-semibold text-primary">
               NovaMind v1
             </span>
+            {userIsAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                title="Admin Panel"
+                className="rounded-lg p-1.5 text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <Shield size={16} />
+              </button>
+            )}
             <button
               onClick={() => navigate("/gallery")}
               title="Batch Gallery"
