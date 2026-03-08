@@ -112,6 +112,20 @@ const Auth = () => {
       toast.error(error.message);
     } else if (isSignUp) {
       toast.success("Account created! Check your email to confirm.");
+      // Process referral if ref code exists
+      if (refCode) {
+        try {
+          const referrerId = await lookupReferralCode(refCode);
+          if (referrerId) {
+            const { data: { user: newUser } } = await supabase.auth.getUser();
+            if (newUser) {
+              await recordReferral(referrerId, newUser.id);
+            }
+          }
+        } catch (e) {
+          console.error("Referral processing failed", e);
+        }
+      }
     }
     setLoading(false);
   };
