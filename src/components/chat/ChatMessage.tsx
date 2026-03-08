@@ -16,6 +16,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   attachments?: Attachment[];
+  generatedImages?: string[]; // base64 data URLs from AI image generation
 }
 
 interface ChatMessageProps {
