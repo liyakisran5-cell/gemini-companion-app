@@ -477,6 +477,7 @@ const Index = () => {
         onDelete={handleDeleteConv}
         isOpen={isDesktop || sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onSignOut={signOut}
       />
 
       <main className="flex flex-1 flex-col overflow-hidden">
