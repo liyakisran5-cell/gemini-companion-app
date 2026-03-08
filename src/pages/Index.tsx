@@ -171,6 +171,23 @@ const Index = () => {
 
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
+
+    // Check credits before proceeding
+    const isVideo = isVideoRequest(text);
+    try {
+      const credits = await getUserCredits(user.id);
+      if (isVideo && credits.video_credits <= 0) {
+        toast.error("No video credits! Invite friends to earn credits 🎁");
+        return;
+      }
+      if (!isVideo && credits.image_credits <= 0) {
+        toast.error("No image credits! Invite friends to earn credits 🎁");
+        return;
+      }
+    } catch (e) {
+      console.error("Credit check failed", e);
+    }
+
     setIsLoading(true);
 
     let convId = activeConvId;
