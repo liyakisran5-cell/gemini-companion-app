@@ -514,13 +514,15 @@ const Index = () => {
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <button
-              onClick={signOut}
-              title="Sign out"
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            <a
+              href="https://wa.me/923134499704"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="WhatsApp Help"
+              className="rounded-lg p-1.5 text-green-500 transition-colors hover:bg-green-500/10"
             >
-              <LogOut size={16} />
-            </button>
+              <MessageCircleQuestion size={16} />
+            </a>
           </div>
         </header>
 

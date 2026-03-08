@@ -1,4 +1,4 @@
-import { Plus, MessageSquare, Trash2, Menu, X } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Menu, X, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface Conversation {
