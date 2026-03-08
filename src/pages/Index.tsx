@@ -78,6 +78,13 @@ const Index = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Check free access / admin status
+  useEffect(() => {
+    if (!user) return;
+    hasFreeAccess(user.id).then(setUserHasFreeAccess);
+    checkIsAdmin(user.id).then(setUserIsAdmin);
+  }, [user]);
+
   // Load conversations on mount
   useEffect(() => {
     const load = async () => {
