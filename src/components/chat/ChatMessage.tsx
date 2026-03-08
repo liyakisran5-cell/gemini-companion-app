@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { Bot, User, FileText, Copy, Check, RefreshCw, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Bot, User, FileText, Copy, Check, RefreshCw, ThumbsUp, ThumbsDown, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export interface Attachment {
