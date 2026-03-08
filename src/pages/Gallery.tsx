@@ -11,6 +11,7 @@ import {
   deleteGalleryImage,
   generateAndSaveImage,
 } from "@/lib/gallery-db";
+import { getUserCredits, useImageCredit } from "@/lib/referral-db";
 
 interface PromptStatus {
   prompt: string;
@@ -38,6 +39,14 @@ const Gallery = () => {
   const handleGenerate = useCallback(
     async (prompts: string[]) => {
       if (!user) return;
+
+      // Check credits
+      const credits = await getUserCredits(user.id);
+      if (credits.image_credits < prompts.length) {
+        toast.error(`Not enough credits! You have ${credits.image_credits} but need ${prompts.length}. Invite friends to earn more! 🎁`);
+        return;
+      }
+
       setIsGenerating(true);
 
       const statuses: PromptStatus[] = prompts.map((p) => ({ prompt: p, status: "pending" }));
@@ -54,6 +63,7 @@ const Gallery = () => {
             prompts[i],
             (image) => {
               setImages((prev) => [image, ...prev]);
+              useImageCredit(user.id); // Deduct credit
               setPromptStatuses((prev) =>
                 prev.map((s, idx) => (idx === i ? { ...s, status: "done" } : s))
               );

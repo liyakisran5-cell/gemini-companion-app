@@ -10,7 +10,9 @@ import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen, { extractDisplayName } from "@/components/chat/WelcomeScreen";
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
+import ReferralPanel from "@/components/ReferralPanel";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
+import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
 import {
   loadConversations,
   createConversation as dbCreateConv,
@@ -169,6 +171,23 @@ const Index = () => {
 
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
+
+    // Check credits before proceeding
+    const isVideo = isVideoRequest(text);
+    try {
+      const credits = await getUserCredits(user.id);
+      if (isVideo && credits.video_credits <= 0) {
+        toast.error("No video credits! Invite friends to earn credits 🎁");
+        return;
+      }
+      if (!isVideo && credits.image_credits <= 0) {
+        toast.error("No image credits! Invite friends to earn credits 🎁");
+        return;
+      }
+    } catch (e) {
+      console.error("Credit check failed", e);
+    }
+
     setIsLoading(true);
 
     let convId = activeConvId;
@@ -234,6 +253,8 @@ const Index = () => {
       }));
 
       const capturedConvId = convId!;
+      // Deduct video credit
+      await useVideoCredit(user.id);
       simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
         setIsLoading(false);
         try {
@@ -296,6 +317,8 @@ const Index = () => {
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
+        // Deduct image credit on successful generation
+        await useImageCredit(user.id);
         try {
           const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({
@@ -524,6 +547,8 @@ const Index = () => {
             </div>
           )}
         </div>
+
+        <ReferralPanel />
 
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
           <div className="mb-3 flex items-center gap-3">

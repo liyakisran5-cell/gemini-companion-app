@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Sparkles, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { lookupReferralCode, recordReferral } from "@/lib/referral-db";
 
 const isCustomDomain = () =>
   !window.location.hostname.includes("lovable.app") &&
@@ -12,6 +14,7 @@ const isCustomDomain = () =>
 
 const Auth = () => {
   const { signIn, signUp, resetPassword } = useAuth();
+  const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
@@ -19,6 +22,12 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [refCode] = useState(() => searchParams.get("ref") || "");
+
+  // If ref code exists, default to signup
+  useEffect(() => {
+    if (refCode) setIsSignUp(true);
+  }, [refCode]);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -103,6 +112,20 @@ const Auth = () => {
       toast.error(error.message);
     } else if (isSignUp) {
       toast.success("Account created! Check your email to confirm.");
+      // Process referral if ref code exists
+      if (refCode) {
+        try {
+          const referrerId = await lookupReferralCode(refCode);
+          if (referrerId) {
+            const { data: { user: newUser } } = await supabase.auth.getUser();
+            if (newUser) {
+              await recordReferral(referrerId, newUser.id);
+            }
+          }
+        } catch (e) {
+          console.error("Referral processing failed", e);
+        }
+      }
     }
     setLoading(false);
   };

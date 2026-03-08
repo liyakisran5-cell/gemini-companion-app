@@ -100,6 +100,72 @@ export type Database = {
           },
         ]
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          id: string
+          image_credits: number
+          updated_at: string
+          user_id: string
+          video_credits: number
+        }
+        Insert: {
+          id?: string
+          image_credits?: number
+          updated_at?: string
+          user_id: string
+          video_credits?: number
+        }
+        Update: {
+          id?: string
+          image_credits?: number
+          updated_at?: string
+          user_id?: string
+          video_credits?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
