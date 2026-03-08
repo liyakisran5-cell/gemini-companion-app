@@ -71,7 +71,7 @@ export default defineConfig(({ mode }) => ({
           },
           {
             src: "/screenshot-mobile.png",
-            sizes: "540x960",
+            sizes: "1080x1920",
             type: "image/png",
             form_factor: "narrow",
             label: "NovaMind mobile chat interface",
