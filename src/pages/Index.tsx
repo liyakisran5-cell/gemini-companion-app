@@ -170,10 +170,20 @@ const Index = () => {
           ),
         }));
       },
+      onImageGenerated: async (result) => {
+        assistantSoFar = result.content;
+        setMessagesMap((prev) => ({
+          ...prev,
+          [capturedConvId!]: prev[capturedConvId!].map((m) =>
+            m.id === assistantTempId
+              ? { ...m, content: result.content, generatedImages: result.images }
+              : m
+          ),
+        }));
+      },
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Save assistant message to DB
         try {
           const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({
