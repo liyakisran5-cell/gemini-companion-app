@@ -66,7 +66,7 @@ const Auth = () => {
         if (error) throw error;
         if (data?.url) {
           const oauthUrl = new URL(data.url);
-          const allowedHosts = ["appleid.apple.com"];
+          const allowedHosts = ["appleid.apple.com", "wgpdmluxashwhdsandyz.supabase.co"];
           if (!allowedHosts.some((host) => oauthUrl.hostname === host)) {
             throw new Error("Invalid OAuth redirect URL");
           }
