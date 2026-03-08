@@ -103,25 +103,27 @@ const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) =
           {isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-primary prose-code:rounded prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-xs prose-code:text-primary prose-pre:bg-secondary prose-pre:border prose-pre:border-border">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            </div>
-            {message.generatedImages && message.generatedImages.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {message.generatedImages.map((imgUrl, idx) => (
-                  <div
-                    key={idx}
-                    className="overflow-hidden rounded-xl border border-border"
-                  >
-                    <img
-                      src={imgUrl}
-                      alt={`Generated image ${idx + 1}`}
-                      className="max-h-[400px] w-auto max-w-full object-contain"
-                    />
-                  </div>
-                ))}
+            <>
+              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-primary prose-code:rounded prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-xs prose-code:text-primary prose-pre:bg-secondary prose-pre:border prose-pre:border-border">
+                <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
-            )}
+              {message.generatedImages && message.generatedImages.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {message.generatedImages.map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      className="overflow-hidden rounded-xl border border-border"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Generated image ${idx + 1}`}
+                        className="max-h-[400px] w-auto max-w-full object-contain"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {isStreaming && (
             <motion.span
