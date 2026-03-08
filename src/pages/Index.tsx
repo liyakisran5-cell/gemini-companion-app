@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { LogOut } from "lucide-react";
+import { LogOut, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
