@@ -116,9 +116,9 @@ const Index = () => {
 
   const isVideoRequest = (text: string) => {
     const lower = text.toLowerCase();
-    // Broad check: if it contains "video" or "clip" + action intent, treat as video
-    const hasVideoWord = lower.includes("video") || lower.includes("clip") || lower.includes("animate");
-    const hasActionWord = /\b(make|create|generate|produce|build|render|show|give|want|need|get)\b/.test(lower);
+    // Only treat as video if it explicitly mentions "video", "clip", or "animate" + action intent
+    const hasVideoWord = /\b(video|clip|animate|animation|movie|film)\b/.test(lower);
+    const hasActionWord = /\b(make|create|generate|produce|build|render|show|give|want|need|get|record|shoot)\b/.test(lower);
     if (hasVideoWord && hasActionWord) return true;
     return VIDEO_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
   };

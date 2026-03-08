@@ -39,6 +39,14 @@ const IMAGE_KEYWORDS = [
   "ड्रा करो", "पेंट करो",
 ];
 
+// Patterns that indicate a visual scene description (should route to image generation)
+const SCENE_PATTERNS = [
+  /^a\s+(dynamic|cinematic|dramatic|beautiful|stunning|realistic|detailed|photorealistic)\s+(shot|scene|view|image|picture|photo|portrait|landscape)/i,
+  /^(a|an|the)\s+\w+\s+(shot|scene|view)\s+of/i,
+  /\b(cinematic|photorealistic|hyper-?realistic|8k|4k|ultra.?hd)\b.*\b(shot|scene|view|image|render)\b/i,
+  /\b(camera|tracking shot|wide angle|close.?up|aerial|drone)\b/i,
+];
+
 function getTextContent(messages: any[]): string {
   const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
   if (!lastUserMsg) return "";
@@ -50,8 +58,13 @@ function getTextContent(messages: any[]): string {
 }
 
 function isImageRequest(messages: any[]): boolean {
-  const content = getTextContent(messages).toLowerCase();
-  return IMAGE_KEYWORDS.some((kw) => content.includes(kw.toLowerCase()));
+  const content = getTextContent(messages);
+  const lower = content.toLowerCase();
+  // Check explicit keywords
+  if (IMAGE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()))) return true;
+  // Check scene description patterns (descriptive prompts that are clearly visual)
+  if (SCENE_PATTERNS.some((pat) => pat.test(content))) return true;
+  return false;
 }
 
 function handleError(status: number, fallbackMsg: string) {
@@ -193,7 +206,7 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "You are NovaMind, a helpful and intelligent AI assistant. You provide clear, concise, and well-formatted responses using markdown. When analyzing images, describe what you see in detail and provide helpful insights. Be friendly and professional. IMPORTANT: You do NOT have the ability to generate, create, or draw images yourself in text mode. If a user asks you to generate an image, tell them to use keywords like 'generate an image of...' or 'create a thumbnail of...' so the image generation feature activates automatically. Never output fake JSON actions or pretend to call image generation tools.",
+              "You are NovaMind, a helpful and intelligent AI assistant. You provide clear, concise, and well-formatted responses using markdown. When analyzing images, describe what you see in detail and provide helpful insights. Be friendly and professional.\n\nCRITICAL RULES:\n1. NEVER output JSON objects, code blocks with JSON, or tool-call-like structures in your responses. No {\"action\": ...}, no dalle references, no function calls.\n2. You CANNOT generate, create, or draw images. If a user wants an image, tell them to start their message with 'Generate an image of...' or 'Create a picture of...' to activate the image generation feature.\n3. If a user sends a descriptive scene (e.g. 'A cinematic shot of...'), respond naturally by discussing the scene - do NOT attempt to call any tools or output JSON.\n4. Keep all responses as plain text with markdown formatting only.",
           },
           ...transformedMessages,
         ],

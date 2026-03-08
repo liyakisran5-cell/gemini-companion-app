@@ -35,11 +35,12 @@ interface ChatMessageProps {
   onImageEdited?: (result: ImageGenerationResult) => void;
 }
 
-/** Parse content for JSON action blocks (e.g. DALL-E) and extract images/text */
+/** Parse content: strip any JSON action blocks the AI might have output and extract image URLs */
 function parseActionContent(content: string): { text: string; extractedImages: string[] } {
   const extractedImages: string[] = [];
-  // Match JSON blocks that look like action objects
-  const jsonPattern = /```(?:json)?\s*(\{[\s\S]*?\})\s*```|\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?\}/g;
+  
+  // Match JSON blocks: fenced code blocks with JSON, or raw JSON objects with "action" key
+  const jsonPattern = /```(?:json)?\s*\{[\s\S]*?\}\s*```|\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?\}/g;
   
   const cleaned = content.replace(jsonPattern, (match) => {
     try {
@@ -48,7 +49,7 @@ function parseActionContent(content: string): { text: string; extractedImages: s
         : match;
       const parsed = JSON.parse(jsonStr);
       
-      // Extract image URL from various action formats
+      // Extract image URL if present
       const url = parsed?.action_input?.url 
         || parsed?.action_input?.image_url 
         || parsed?.url 
@@ -57,14 +58,24 @@ function parseActionContent(content: string): { text: string; extractedImages: s
       
       if (url && typeof url === "string" && (url.startsWith("http") || url.startsWith("data:"))) {
         extractedImages.push(url);
-        const prompt = parsed?.action_input?.prompt || parsed?.action_input?.text || "";
-        return prompt ? `*Generated image: ${prompt}*` : "";
       }
-      // If it's an action JSON but no URL yet, show a friendly message
-      if (parsed?.action) {
-        const prompt = parsed?.action_input?.prompt || parsed?.action_input?.text || "";
-        return prompt ? `*Generating image: ${prompt}...*` : "";
+      
+      // Try to extract the prompt for a friendly message
+      let prompt = "";
+      if (typeof parsed?.action_input === "string") {
+        try {
+          const inner = JSON.parse(parsed.action_input);
+          prompt = inner?.prompt || "";
+        } catch {
+          prompt = parsed.action_input;
+        }
+      } else {
+        prompt = parsed?.action_input?.prompt || parsed?.action_input?.text || "";
       }
+      
+      // Always strip the JSON — replace with a friendly message or nothing
+      if (prompt) return `🎨 *Generating: ${prompt.slice(0, 100)}${prompt.length > 100 ? "..." : ""}*`;
+      return "";
     } catch { /* not valid JSON, leave as-is */ }
     return match;
   });
