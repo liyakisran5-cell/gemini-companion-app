@@ -108,17 +108,29 @@ const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) =
                 <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
               {message.generatedImages && message.generatedImages.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-3">
                   {message.generatedImages.map((imgUrl, idx) => (
                     <div
                       key={idx}
-                      className="overflow-hidden rounded-xl border border-border"
+                      className="group/img relative overflow-hidden rounded-xl border border-border"
                     >
                       <img
                         src={imgUrl}
                         alt={`Generated image ${idx + 1}`}
                         className="max-h-[400px] w-auto max-w-full object-contain"
                       />
+                      <button
+                        onClick={() => {
+                          const link = document.createElement("a");
+                          link.href = imgUrl;
+                          link.download = `novamind-image-${Date.now()}-${idx + 1}.png`;
+                          link.click();
+                        }}
+                        title="Download image"
+                        className="absolute bottom-2 right-2 rounded-lg bg-background/80 p-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover/img:opacity-100"
+                      >
+                        <Download size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
