@@ -17,6 +17,14 @@ export interface Message {
   content: string;
   attachments?: Attachment[];
   generatedImages?: string[]; // base64 data URLs from AI image generation
+  generatedVideo?: {
+    url: string;
+    model: string;
+    resolution: string;
+    duration: number;
+    aspectRatio: string;
+  };
+  videoProgress?: number; // 0-100 progress for video generation
 }
 
 interface ChatMessageProps {
