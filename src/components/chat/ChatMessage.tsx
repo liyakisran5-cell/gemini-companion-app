@@ -32,6 +32,7 @@ interface ChatMessageProps {
   message: Message;
   isStreaming?: boolean;
   onRegenerate?: () => void;
+  onImageEdited?: (result: ImageGenerationResult) => void;
 }
 
 /** Parse content for JSON action blocks (e.g. DALL-E) and extract images/text */
