@@ -594,6 +594,7 @@ const Index = () => {
           showSuggestions={activeMessages.length === 0}
           placeholder={generationMode === "video" ? "Describe the video you want..." : "Describe the image you want..."}
         />
+      </main>
     </div>
   );
 };
