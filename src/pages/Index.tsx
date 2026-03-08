@@ -43,6 +43,13 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [videoSettings, setVideoSettings] = useState<VideoSettings>({
+    model: "sora-2",
+    resolution: "1080p",
+    duration: 8,
+    aspectRatio: "16:9",
+  });
+  const [videoSettingsOpen, setVideoSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
