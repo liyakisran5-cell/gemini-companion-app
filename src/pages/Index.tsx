@@ -13,6 +13,7 @@ import GenerationModeSelector, { GenerationMode } from "@/components/chat/Genera
 import ReferralPanel from "@/components/ReferralPanel";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
+import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
 import {
   loadConversations,
   createConversation as dbCreateConv,
