@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Gallery from "./pages/Gallery";
+import Admin from "./pages/Admin";
 import InstallPrompt from "./components/InstallPrompt";
 
 const queryClient = new QueryClient();
