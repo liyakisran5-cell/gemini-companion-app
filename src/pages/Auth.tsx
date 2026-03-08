@@ -34,7 +34,8 @@ const Auth = () => {
         if (error) throw error;
         if (data?.url) {
           const oauthUrl = new URL(data.url);
-          const allowedHosts = ["accounts.google.com", "wgpdmluxashwhdsandyz.supabase.co"];
+          const supabaseHost = new URL(import.meta.env.VITE_SUPABASE_URL).hostname;
+          const allowedHosts = ["accounts.google.com", supabaseHost];
           if (!allowedHosts.some((host) => oauthUrl.hostname === host)) {
             throw new Error("Invalid OAuth redirect URL");
           }
