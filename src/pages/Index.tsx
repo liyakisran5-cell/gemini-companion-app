@@ -18,13 +18,23 @@ import {
   updateMessageContent,
 } from "@/lib/chat-db";
 
-// Keywords to detect video generation requests
+// Keywords to detect video generation requests — broad matching
 const VIDEO_KEYWORDS = [
   "generate a video", "generate video", "create a video", "create video",
-  "make a video", "make video", "generate a clip", "create a clip",
-  "make a clip", "video of", "animate a", "animate this",
-  "ویڈیو بنائیں", "ویڈیو بناؤ",
-  "वीडियो बनाओ", "वीडियो बनाएं",
+  "make a video", "make video", "make me a video",
+  "generate a clip", "create a clip", "make a clip", "make me a clip",
+  "video of", "video about", "video for", "video showing",
+  "animate a", "animate this", "animate the",
+  "record a video", "film a", "shoot a video",
+  "cinematic video", "short video", "video generation",
+  "generate me a video", "create me a video",
+  "i want a video", "i need a video",
+  "can you make a video", "can you create a video", "can you generate a video",
+  "please make a video", "please create a video", "please generate a video",
+  // Urdu
+  "ویڈیو بنائیں", "ویڈیو بناؤ", "ویڈیو بنا دو", "ویڈیو بنا",
+  // Hindi
+  "वीडियो बनाओ", "वीडियो बनाएं", "वीडियो बना दो",
 ];
 
 // Sample mock video URLs for demo
@@ -104,8 +114,14 @@ const Index = () => {
 
   const activeMessages = activeConvId ? messagesMap[activeConvId] || [] : [];
 
-  const isVideoRequest = (text: string) =>
-    VIDEO_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
+  const isVideoRequest = (text: string) => {
+    const lower = text.toLowerCase();
+    // Broad check: if it contains "video" or "clip" + action intent, treat as video
+    const hasVideoWord = lower.includes("video") || lower.includes("clip") || lower.includes("animate");
+    const hasActionWord = /\b(make|create|generate|produce|build|render|show|give|want|need|get)\b/.test(lower);
+    if (hasVideoWord && hasActionWord) return true;
+    return VIDEO_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
+  };
 
   const simulateVideoGeneration = async (
     convId: string,
