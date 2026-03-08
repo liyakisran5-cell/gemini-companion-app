@@ -500,15 +500,6 @@ const Index = () => {
                 <Shield size={16} />
               </button>
             )}
-            <a
-              href="https://wa.me/923134499704"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="WhatsApp Help"
-              className="rounded-lg p-1.5 text-green-500 transition-colors hover:bg-green-500/10"
-            >
-              <MessageCircleQuestion size={16} />
-            </a>
             <button
               onClick={() => navigate("/gallery")}
               title="Batch Gallery"
@@ -601,6 +592,16 @@ const Index = () => {
           placeholder={generationMode === "video" ? "Describe the video you want..." : "Describe the image you want..."}
         />
       </main>
+      {/* Floating WhatsApp Button */}
+      <a
+        href="https://wa.me/923134499704"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="WhatsApp Help"
+        className="fixed bottom-20 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110 md:bottom-6"
+      >
+        <MessageCircleQuestion size={24} />
+      </a>
     </div>
   );
 };
