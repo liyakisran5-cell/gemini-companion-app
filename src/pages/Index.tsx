@@ -457,6 +457,13 @@ const Index = () => {
               NovaMind v1
             </span>
             <button
+              onClick={() => navigate("/gallery")}
+              title="Batch Gallery"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Images size={16} />
+            </button>
+            <button
               onClick={toggleTheme}
               title="Toggle theme"
               className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
