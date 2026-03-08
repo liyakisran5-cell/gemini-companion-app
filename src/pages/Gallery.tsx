@@ -11,6 +11,7 @@ import {
   deleteGalleryImage,
   generateAndSaveImage,
 } from "@/lib/gallery-db";
+import { getUserCredits, useImageCredit } from "@/lib/referral-db";
 
 interface PromptStatus {
   prompt: string;
