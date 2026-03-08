@@ -68,6 +68,8 @@ const Index = () => {
   const [videoSettingsOpen, setVideoSettingsOpen] = useState(false);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("image");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [userHasFreeAccess, setUserHasFreeAccess] = useState(false);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   useEffect(() => {
