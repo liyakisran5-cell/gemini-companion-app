@@ -82,7 +82,6 @@ function parseActionContent(content: string): { text: string; extractedImages: s
 
   return { text: cleaned.trim(), extractedImages };
 }
-}
 
 const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: ChatMessageProps) => {
   const isUser = message.role === "user";
