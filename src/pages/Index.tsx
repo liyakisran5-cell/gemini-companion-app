@@ -8,7 +8,7 @@ import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage"
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
-import { streamChat, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
+import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import {
   loadConversations,
   createConversation as dbCreateConv,
@@ -484,6 +484,25 @@ const Index = () => {
                       ? () => handleRegenerate(activeConvId!)
                       : undefined
                   }
+                  onImageEdited={(result) => {
+                    // Add edited image as a new assistant message
+                    const editedMsgId = `edited-${Date.now()}`;
+                    setMessagesMap((prev) => ({
+                      ...prev,
+                      [activeConvId!]: [
+                        ...(prev[activeConvId!] || []),
+                        {
+                          id: editedMsgId,
+                          role: "assistant" as const,
+                          content: result.content,
+                          generatedImages: result.images,
+                        },
+                      ],
+                    }));
+                    if (user) {
+                      saveMessage(activeConvId!, user.id, "assistant", result.content).catch(console.error);
+                    }
+                  }}
                 />
               ))}
               <div ref={messagesEndRef} />

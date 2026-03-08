@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { Bot, User, FileText, Copy, Check, RefreshCw, ThumbsUp, ThumbsDown, Download, Video, Play } from "lucide-react";
+import { Bot, User, FileText, Copy, Check, RefreshCw, ThumbsUp, ThumbsDown, Download, Video, Play, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { editImage, ImageGenerationResult } from "@/lib/chat-stream";
 
 export interface Attachment {
   id: string;
@@ -31,6 +32,7 @@ interface ChatMessageProps {
   message: Message;
   isStreaming?: boolean;
   onRegenerate?: () => void;
+  onImageEdited?: (result: ImageGenerationResult) => void;
 }
 
 /** Parse content for JSON action blocks (e.g. DALL-E) and extract images/text */
@@ -70,11 +72,14 @@ function parseActionContent(content: string): { text: string; extractedImages: s
   return { text: cleaned.trim(), extractedImages };
 }
 
-const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) => {
+const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: ChatMessageProps) => {
   const isUser = message.role === "user";
   const attachments = message.attachments || [];
   const [copied, setCopied] = useState(false);
   const [rating, setRating] = useState<"up" | "down" | null>(null);
+  const [editingImageIdx, setEditingImageIdx] = useState<number | null>(null);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [isEditingImage, setIsEditingImage] = useState(false);
 
   const { text: parsedContent, extractedImages } = useMemo(
     () => (isUser ? { text: message.content, extractedImages: [] } : parseActionContent(message.content)),
@@ -165,27 +170,90 @@ const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) =
               {allGeneratedImages.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-3">
                   {allGeneratedImages.map((imgUrl, idx) => (
-                    <div
-                      key={idx}
-                      className="group/img relative overflow-hidden rounded-xl border border-border"
-                    >
-                      <img
-                        src={imgUrl}
-                        alt={`Generated image ${idx + 1}`}
-                        className="max-h-[400px] w-auto max-w-full object-contain"
-                      />
-                      <button
-                        onClick={() => {
-                          const link = document.createElement("a");
-                          link.href = imgUrl;
-                          link.download = `novamind-image-${Date.now()}-${idx + 1}.png`;
-                          link.click();
-                        }}
-                        title="Download image"
-                        className="absolute bottom-2 right-2 rounded-lg bg-background/80 p-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover/img:opacity-100"
-                      >
-                        <Download size={16} />
-                      </button>
+                    <div key={idx} className="space-y-2">
+                      <div className="group/img relative overflow-hidden rounded-xl border border-border">
+                        <img
+                          src={imgUrl}
+                          alt={`Generated image ${idx + 1}`}
+                          className="max-h-[400px] w-auto max-w-full object-contain"
+                        />
+                        <div className="absolute bottom-2 right-2 flex gap-1.5 opacity-0 transition-opacity group-hover/img:opacity-100">
+                          <button
+                            onClick={() => setEditingImageIdx(editingImageIdx === idx ? null : idx)}
+                            title="Edit image"
+                            className="rounded-lg bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement("a");
+                              link.href = imgUrl;
+                              link.download = `novamind-image-${Date.now()}-${idx + 1}.png`;
+                              link.click();
+                            }}
+                            title="Download image"
+                            className="rounded-lg bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      {editingImageIdx === idx && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editPrompt}
+                            onChange={(e) => setEditPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && editPrompt.trim() && !isEditingImage) {
+                                setIsEditingImage(true);
+                                editImage({
+                                  imageUrl: imgUrl,
+                                  editPrompt: editPrompt.trim(),
+                                  onResult: (result) => {
+                                    setIsEditingImage(false);
+                                    setEditingImageIdx(null);
+                                    setEditPrompt("");
+                                    onImageEdited?.(result);
+                                  },
+                                  onError: (err) => {
+                                    setIsEditingImage(false);
+                                    toast.error(err);
+                                  },
+                                });
+                              }
+                            }}
+                            placeholder="Describe your edit (e.g. 'make it darker')"
+                            className="flex-1 rounded-lg border border-border bg-secondary px-3 py-1.5 font-display text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            disabled={isEditingImage}
+                          />
+                          <button
+                            onClick={() => {
+                              if (!editPrompt.trim() || isEditingImage) return;
+                              setIsEditingImage(true);
+                              editImage({
+                                imageUrl: imgUrl,
+                                editPrompt: editPrompt.trim(),
+                                onResult: (result) => {
+                                  setIsEditingImage(false);
+                                  setEditingImageIdx(null);
+                                  setEditPrompt("");
+                                  onImageEdited?.(result);
+                                },
+                                onError: (err) => {
+                                  setIsEditingImage(false);
+                                  toast.error(err);
+                                },
+                              });
+                            }}
+                            disabled={!editPrompt.trim() || isEditingImage}
+                            className="rounded-lg bg-primary px-3 py-1.5 font-display text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                          >
+                            {isEditingImage ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

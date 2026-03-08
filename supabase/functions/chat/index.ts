@@ -6,9 +6,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const IMAGE_MODEL = "google/gemini-3-pro-image-preview";
+const CHAT_MODEL = "google/gemini-3-flash-preview";
+
 // Keywords that indicate an image generation request (multilingual)
 const IMAGE_KEYWORDS = [
-  // English - broad patterns
   "generate an image", "generate image", "generate a image",
   "create an image", "create image", "create a image",
   "make an image", "make image", "make a image",
@@ -26,31 +29,17 @@ const IMAGE_KEYWORDS = [
   "sketch me", "sketch a", "sketch an", "sketch the",
   "show me an image", "show me a picture", "show me a photo",
   "design a", "design an", "design me",
-  // Urdu
   "تصویر بنائیں", "تصویر بناؤ", "تصویر بنا دو", "تصویر بنا",
   "فوٹو بنائیں", "فوٹو بناؤ", "فوٹو بنا دو",
   "تھمب نیل بنائیں", "تھمب نیل بناؤ", "تھمب نیل بنا",
   "پینٹ کرو", "ڈرا کرو",
-  // Hindi
   "तस्वीर बनाओ", "तस्वीर बनाएं", "चित्र बनाओ", "चित्र बनाएं",
   "फोटो बनाओ", "फोटो बनाएं", "इमेज बनाओ", "इमेज बनाएं",
   "थंबनेल बनाओ", "थंबनेल बनाएं",
   "ड्रा करो", "पेंट करो",
 ];
 
-function isImageRequest(messages: any[]): boolean {
-  // Check the last user message
-  const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
-  if (!lastUserMsg) return false;
-  const content = typeof lastUserMsg.content === "string"
-    ? lastUserMsg.content.toLowerCase()
-    : Array.isArray(lastUserMsg.content)
-      ? lastUserMsg.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join(" ").toLowerCase()
-      : "";
-  return IMAGE_KEYWORDS.some((kw) => content.includes(kw.toLowerCase()));
-}
-
-function getLastUserText(messages: any[]): string {
+function getTextContent(messages: any[]): string {
   const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
   if (!lastUserMsg) return "";
   if (typeof lastUserMsg.content === "string") return lastUserMsg.content;
@@ -60,85 +49,83 @@ function getLastUserText(messages: any[]): string {
   return "";
 }
 
+function isImageRequest(messages: any[]): boolean {
+  const content = getTextContent(messages).toLowerCase();
+  return IMAGE_KEYWORDS.some((kw) => content.includes(kw.toLowerCase()));
+}
+
+function handleError(status: number, fallbackMsg: string) {
+  if (status === 429) {
+    return new Response(
+      JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  if (status === 402) {
+    return new Response(
+      JSON.stringify({ error: "AI credits exhausted. Please add credits in your workspace settings." }),
+      { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  return new Response(
+    JSON.stringify({ error: fallbackMsg }),
+    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const { messages, action, imageUrl, editPrompt } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Transform messages: convert image attachments to multimodal content
-    const transformedMessages = messages.map((msg: any) => {
-      if (msg.role === "user" && msg.images && msg.images.length > 0) {
-        const content: any[] = [];
-        if (msg.content) {
-          content.push({ type: "text", text: msg.content });
-        }
-        for (const img of msg.images) {
-          content.push({
-            type: "image_url",
-            image_url: { url: img },
-          });
-        }
-        return { role: "user", content };
-      }
-      return { role: msg.role, content: msg.content };
-    });
+    const authHeaders = {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    };
 
-    // Check if this is an image generation request
-    if (isImageRequest(transformedMessages)) {
-      const userText = getLastUserText(transformedMessages);
-
-      const response = await fetch(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
-            messages: [
-              {
-                role: "user",
-                content: userText,
-              },
-            ],
-            modalities: ["image", "text"],
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (response.status === 402) {
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted. Please add credits in your workspace settings." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        const t = await response.text();
-        console.error("Image generation error:", response.status, t);
+    // === Image Editing ===
+    if (action === "edit_image") {
+      if (!imageUrl || !editPrompt) {
         return new Response(
-          JSON.stringify({ error: "Image generation failed" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "imageUrl and editPrompt are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
+      const response = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          model: IMAGE_MODEL,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: editPrompt },
+                { type: "image_url", image_url: { url: imageUrl } },
+              ],
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("Image edit error:", response.status, t);
+        return handleError(response.status, "Image editing failed");
+      }
+
       const data = await response.json();
-      const textContent = data.choices?.[0]?.message?.content || "Here's your generated image:";
+      const textContent = data.choices?.[0]?.message?.content || "Here's your edited image:";
       const images = data.choices?.[0]?.message?.images || [];
 
-      // Return as a JSON response (not streaming) with a special type
       return new Response(
         JSON.stringify({
           type: "image_generation",
@@ -149,49 +136,75 @@ serve(async (req) => {
       );
     }
 
-    // Standard text streaming response
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are NovaMind, a helpful and intelligent AI assistant. You provide clear, concise, and well-formatted responses using markdown. When analyzing images, describe what you see in detail and provide helpful insights. Be friendly and professional. IMPORTANT: You do NOT have the ability to generate, create, or draw images yourself in text mode. If a user asks you to generate an image, tell them to use keywords like 'generate an image of...' or 'create a thumbnail of...' so the image generation feature activates automatically. Never output fake JSON actions or pretend to call image generation tools.",
-            },
-            ...transformedMessages,
-          ],
-          stream: true,
-        }),
+    // === Transform messages for multimodal ===
+    const transformedMessages = messages.map((msg: any) => {
+      if (msg.role === "user" && msg.images && msg.images.length > 0) {
+        const content: any[] = [];
+        if (msg.content) content.push({ type: "text", text: msg.content });
+        for (const img of msg.images) {
+          content.push({ type: "image_url", image_url: { url: img } });
+        }
+        return { role: "user", content };
       }
-    );
+      return { role: msg.role, content: msg.content };
+    });
+
+    // === Image Generation ===
+    if (isImageRequest(transformedMessages)) {
+      const userText = getTextContent(transformedMessages);
+
+      const response = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          model: IMAGE_MODEL,
+          messages: [{ role: "user", content: userText }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("Image generation error:", response.status, t);
+        return handleError(response.status, "Image generation failed");
+      }
+
+      const data = await response.json();
+      const textContent = data.choices?.[0]?.message?.content || "Here's your generated image:";
+      const images = data.choices?.[0]?.message?.images || [];
+
+      return new Response(
+        JSON.stringify({
+          type: "image_generation",
+          content: textContent,
+          images: images.map((img: any) => img.image_url?.url || img),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // === Standard text streaming ===
+    const response = await fetch(AI_GATEWAY, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        model: CHAT_MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are NovaMind, a helpful and intelligent AI assistant. You provide clear, concise, and well-formatted responses using markdown. When analyzing images, describe what you see in detail and provide helpful insights. Be friendly and professional. IMPORTANT: You do NOT have the ability to generate, create, or draw images yourself in text mode. If a user asks you to generate an image, tell them to use keywords like 'generate an image of...' or 'create a thumbnail of...' so the image generation feature activates automatically. Never output fake JSON actions or pretend to call image generation tools.",
+          },
+          ...transformedMessages,
+        ],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits in your workspace settings." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(
-        JSON.stringify({ error: "AI gateway error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return handleError(response.status, "AI gateway error");
     }
 
     return new Response(response.body, {
