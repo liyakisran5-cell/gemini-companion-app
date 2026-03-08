@@ -196,6 +196,76 @@ const Index = () => {
     });
   };
 
+  const handleRegenerate = async (convId: string) => {
+    if (!user || isLoading) return;
+    const msgs = messagesMap[convId] || [];
+    // Find the last user message
+    const lastUserIdx = msgs.map((m) => m.role).lastIndexOf("user");
+    if (lastUserIdx === -1) return;
+    const lastUserMsg = msgs[lastUserIdx];
+
+    // Remove the last assistant message
+    const trimmed = msgs.slice(0, msgs.length - 1);
+    setMessagesMap((prev) => ({ ...prev, [convId]: trimmed }));
+
+    // Re-send with existing content
+    setIsLoading(true);
+
+    const apiMessages: ChatMsg[] = trimmed.map((m) => ({
+      role: m.role,
+      content: m.content,
+      images: m.attachments ? attachmentsToImages(m.attachments) : undefined,
+    }));
+
+    const assistantTempId = `temp-ai-${Date.now()}`;
+    setMessagesMap((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), { id: assistantTempId, role: "assistant" as const, content: "" }],
+    }));
+    setStreamingId(assistantTempId);
+
+    let assistantSoFar = "";
+
+    await streamChat({
+      messages: apiMessages,
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        const captured = assistantSoFar;
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId]: prev[convId].map((m) =>
+            m.id === assistantTempId ? { ...m, content: captured } : m
+          ),
+        }));
+      },
+      onDone: async () => {
+        setIsLoading(false);
+        setStreamingId(null);
+        try {
+          const savedId = await saveMessage(convId, user.id, "assistant", assistantSoFar);
+          setMessagesMap((prev) => ({
+            ...prev,
+            [convId]: prev[convId].map((m) =>
+              m.id === assistantTempId ? { ...m, id: savedId } : m
+            ),
+          }));
+        } catch (e) {
+          console.error("Failed to save regenerated message", e);
+        }
+      },
+      onError: (error) => {
+        toast.error(error);
+        setIsLoading(false);
+        setStreamingId(null);
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId]: prev[convId].filter((m) => m.id !== assistantTempId),
+        }));
+      },
+    });
+  };
+
+
   const handleNewChat = () => {
     setActiveConvId(null);
     setSidebarOpen(false);
@@ -266,11 +336,16 @@ const Index = () => {
             <WelcomeScreen onSuggestion={(text) => handleSend(text)} />
           ) : (
             <div className="mx-auto max-w-3xl py-4">
-              {activeMessages.map((msg) => (
+              {activeMessages.map((msg, idx) => (
                 <ChatMessage
                   key={msg.id}
                   message={msg}
                   isStreaming={msg.id === streamingId}
+                  onRegenerate={
+                    msg.role === "assistant" && idx === activeMessages.length - 1 && !isLoading
+                      ? () => handleRegenerate(activeConvId!)
+                      : undefined
+                  }
                 />
               ))}
               <div ref={messagesEndRef} />
