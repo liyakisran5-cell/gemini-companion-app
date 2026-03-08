@@ -4,19 +4,22 @@ import { Gift, Copy, Check, Users, ImageIcon, Video, ChevronDown, ChevronUp, Sha
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReferralInfo, ReferralInfo } from "@/lib/referral-db";
+import { isAdmin } from "@/lib/admin-db";
 
 const ReferralPanel = () => {
   const { user } = useAuth();
   const [info, setInfo] = useState<ReferralInfo | null>(null);
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+    isAdmin(user.id).then(setIsAdminUser);
     getReferralInfo(user.id).then(setInfo).catch(console.error);
   }, [user]);
 
-  if (!info) return null;
+  if (!info || isAdminUser) return null;
 
   const referralLink = `${window.location.origin}/auth?ref=${info.code}`;
 
