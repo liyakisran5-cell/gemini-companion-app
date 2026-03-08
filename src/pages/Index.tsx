@@ -10,7 +10,9 @@ import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen, { extractDisplayName } from "@/components/chat/WelcomeScreen";
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
+import ReferralPanel from "@/components/ReferralPanel";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
+import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
 import {
   loadConversations,
   createConversation as dbCreateConv,
