@@ -133,7 +133,7 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
 
         {/* Attachments */}
         {attachments.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className={`mb-2 flex flex-wrap gap-2 ${isUser ? "justify-end" : ""}`}>
             {attachments.map((att) =>
               att.type === "image" && att.preview ? (
                 <div
