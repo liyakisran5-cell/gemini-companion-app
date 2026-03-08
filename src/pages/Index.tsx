@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
-import ChatMessage, { Message } from "@/components/chat/ChatMessage";
+import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
 
@@ -9,6 +9,11 @@ const MOCK_RESPONSES = [
   "Here's what I think about that:\n\n```typescript\nconst solution = () => {\n  // A clean, elegant approach\n  return 'Hello World';\n};\n```\n\nThis pattern is commonly used in modern development. Let me know if you'd like me to explain further!",
   "Absolutely! Here's a comprehensive overview:\n\n## Overview\nThis is a fascinating topic with many layers.\n\n### Benefits\n- **Efficiency**: Streamlined workflows\n- **Scalability**: Grows with your needs\n- **Flexibility**: Adapts to changes\n\n> \"The best way to predict the future is to create it.\" — Peter Drucker\n\nShall I dive deeper into any specific aspect?",
   "I'd be happy to help with that! 🎯\n\nLet me walk you through the process step by step:\n\n1. **Start with research** — understand the landscape\n2. **Define your goals** — be specific and measurable\n3. **Create a plan** — break it into manageable tasks\n4. **Execute and iterate** — learn from feedback\n\nWhat part would you like to focus on first?",
+];
+
+const IMAGE_RESPONSES = [
+  "I can see the image you've shared! Here's my analysis:\n\n**What I notice:**\n- The composition is well-balanced\n- Colors are vibrant and eye-catching\n- The subject matter is interesting\n\nWould you like me to provide more specific feedback or help with something related to this image?",
+  "Thanks for sharing that image! 📸\n\nHere are some observations:\n\n1. **Quality**: The resolution looks good\n2. **Content**: Very interesting subject\n3. **Suggestions**: Could be enhanced with some adjustments\n\nWhat would you like to do with this image?",
 ];
 
 let convCounter = 0;
@@ -22,7 +27,6 @@ const Index = () => {
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Desktop: sidebar always visible
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
@@ -64,7 +68,6 @@ const Index = () => {
     let i = 0;
     const interval = setInterval(() => {
       const chunkSize = Math.floor(Math.random() * 4) + 1;
-      const chunk = fullText.slice(i, i + chunkSize);
       i += chunkSize;
 
       setMessagesMap((prev) => ({
@@ -84,7 +87,7 @@ const Index = () => {
     }, 20);
   };
 
-  const handleSend = (text: string) => {
+  const handleSend = (text: string, attachments: Attachment[] = []) => {
     setIsLoading(true);
     let convId = activeConvId;
 
@@ -96,6 +99,7 @@ const Index = () => {
       id: `msg-${Date.now()}-user`,
       role: "user",
       content: text,
+      attachments: attachments.length > 0 ? attachments : undefined,
     };
 
     setMessagesMap((prev) => ({
@@ -103,8 +107,9 @@ const Index = () => {
       [convId!]: [...(prev[convId!] || []), userMsg],
     }));
 
-    // Simulate AI response
-    const responseText = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
+    const hasImages = attachments.some((a) => a.type === "image");
+    const responses = hasImages ? IMAGE_RESPONSES : MOCK_RESPONSES;
+    const responseText = responses[Math.floor(Math.random() * responses.length)];
     setTimeout(() => simulateStream(convId!, responseText), 600);
   };
 
@@ -139,7 +144,6 @@ const Index = () => {
       />
 
       <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
         <header className="flex items-center justify-between border-b border-border px-4 py-3 md:px-8">
           <div className="flex items-center gap-2 md:hidden" />
           <h3 className="font-display text-sm font-medium text-muted-foreground">
@@ -154,10 +158,9 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto">
           {activeMessages.length === 0 ? (
-            <WelcomeScreen onSuggestion={handleSend} />
+            <WelcomeScreen onSuggestion={(text) => handleSend(text)} />
           ) : (
             <div className="mx-auto max-w-3xl py-4">
               {activeMessages.map((msg) => (
@@ -172,8 +175,11 @@ const Index = () => {
           )}
         </div>
 
-        {/* Input */}
-        <ChatInput onSend={handleSend} isLoading={isLoading} />
+        <ChatInput
+          onSend={handleSend}
+          isLoading={isLoading}
+          showSuggestions={activeMessages.length === 0}
+        />
       </main>
     </div>
   );
