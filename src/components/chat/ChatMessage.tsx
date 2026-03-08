@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { Bot, User, FileText, Copy, Check, RefreshCw, ThumbsUp, ThumbsDown, Download, Video, Play, Pencil, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { editImage, ImageGenerationResult } from "@/lib/chat-stream";
 import { toast } from "sonner";
 
