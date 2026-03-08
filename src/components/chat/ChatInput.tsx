@@ -7,6 +7,7 @@ interface ChatInputProps {
   onSend: (message: string, attachments: Attachment[]) => void;
   isLoading: boolean;
   showSuggestions?: boolean;
+  placeholder?: string;
 }
 
 const suggestions = [
