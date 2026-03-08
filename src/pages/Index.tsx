@@ -473,7 +473,11 @@ const Index = () => {
 
         <div className="flex-1 overflow-y-auto">
           {activeMessages.length === 0 ? (
-            <WelcomeScreen onSuggestion={(text) => handleSend(text)} />
+            <WelcomeScreen
+              onSuggestion={(text) => handleSend(text)}
+              userName={extractDisplayName(user)}
+              isReturningUser={conversations.length > 0}
+            />
           ) : (
             <div className="mx-auto max-w-3xl py-4">
               {activeMessages.map((msg, idx) => (
