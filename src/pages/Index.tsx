@@ -500,15 +500,6 @@ const Index = () => {
                 <Shield size={16} />
               </button>
             )}
-            <a
-              href="https://wa.me/923134499704"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="WhatsApp Help"
-              className="rounded-lg p-1.5 text-green-500 transition-colors hover:bg-green-500/10"
-            >
-              <MessageCircleQuestion size={16} />
-            </a>
             <button
               onClick={() => navigate("/gallery")}
               title="Batch Gallery"
