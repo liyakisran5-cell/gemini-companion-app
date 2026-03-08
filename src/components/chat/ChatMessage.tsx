@@ -152,11 +152,11 @@ const ChatMessage = ({ message, isStreaming, onRegenerate }: ChatMessageProps) =
           ) : (
             <>
               <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-primary prose-code:rounded prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-xs prose-code:text-primary prose-pre:bg-secondary prose-pre:border prose-pre:border-border">
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <ReactMarkdown>{parsedContent}</ReactMarkdown>
               </div>
-              {message.generatedImages && message.generatedImages.length > 0 && (
+              {allGeneratedImages.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-3">
-                  {message.generatedImages.map((imgUrl, idx) => (
+                  {allGeneratedImages.map((imgUrl, idx) => (
                     <div
                       key={idx}
                       className="group/img relative overflow-hidden rounded-xl border border-border"
