@@ -170,27 +170,90 @@ const ChatMessage = ({ message, isStreaming, onRegenerate, onImageEdited }: Chat
               {allGeneratedImages.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-3">
                   {allGeneratedImages.map((imgUrl, idx) => (
-                    <div
-                      key={idx}
-                      className="group/img relative overflow-hidden rounded-xl border border-border"
-                    >
-                      <img
-                        src={imgUrl}
-                        alt={`Generated image ${idx + 1}`}
-                        className="max-h-[400px] w-auto max-w-full object-contain"
-                      />
-                      <button
-                        onClick={() => {
-                          const link = document.createElement("a");
-                          link.href = imgUrl;
-                          link.download = `novamind-image-${Date.now()}-${idx + 1}.png`;
-                          link.click();
-                        }}
-                        title="Download image"
-                        className="absolute bottom-2 right-2 rounded-lg bg-background/80 p-2 text-foreground opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover/img:opacity-100"
-                      >
-                        <Download size={16} />
-                      </button>
+                    <div key={idx} className="space-y-2">
+                      <div className="group/img relative overflow-hidden rounded-xl border border-border">
+                        <img
+                          src={imgUrl}
+                          alt={`Generated image ${idx + 1}`}
+                          className="max-h-[400px] w-auto max-w-full object-contain"
+                        />
+                        <div className="absolute bottom-2 right-2 flex gap-1.5 opacity-0 transition-opacity group-hover/img:opacity-100">
+                          <button
+                            onClick={() => setEditingImageIdx(editingImageIdx === idx ? null : idx)}
+                            title="Edit image"
+                            className="rounded-lg bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement("a");
+                              link.href = imgUrl;
+                              link.download = `novamind-image-${Date.now()}-${idx + 1}.png`;
+                              link.click();
+                            }}
+                            title="Download image"
+                            className="rounded-lg bg-background/80 p-2 text-foreground backdrop-blur-sm transition-colors hover:bg-background"
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      {editingImageIdx === idx && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editPrompt}
+                            onChange={(e) => setEditPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && editPrompt.trim() && !isEditingImage) {
+                                setIsEditingImage(true);
+                                editImage({
+                                  imageUrl: imgUrl,
+                                  editPrompt: editPrompt.trim(),
+                                  onResult: (result) => {
+                                    setIsEditingImage(false);
+                                    setEditingImageIdx(null);
+                                    setEditPrompt("");
+                                    onImageEdited?.(result);
+                                  },
+                                  onError: (err) => {
+                                    setIsEditingImage(false);
+                                    toast.error(err);
+                                  },
+                                });
+                              }
+                            }}
+                            placeholder="Describe your edit (e.g. 'make it darker')"
+                            className="flex-1 rounded-lg border border-border bg-secondary px-3 py-1.5 font-display text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            disabled={isEditingImage}
+                          />
+                          <button
+                            onClick={() => {
+                              if (!editPrompt.trim() || isEditingImage) return;
+                              setIsEditingImage(true);
+                              editImage({
+                                imageUrl: imgUrl,
+                                editPrompt: editPrompt.trim(),
+                                onResult: (result) => {
+                                  setIsEditingImage(false);
+                                  setEditingImageIdx(null);
+                                  setEditPrompt("");
+                                  onImageEdited?.(result);
+                                },
+                                onError: (err) => {
+                                  setIsEditingImage(false);
+                                  toast.error(err);
+                                },
+                              });
+                            }}
+                            disabled={!editPrompt.trim() || isEditingImage}
+                            className="rounded-lg bg-primary px-3 py-1.5 font-display text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                          >
+                            {isEditingImage ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
