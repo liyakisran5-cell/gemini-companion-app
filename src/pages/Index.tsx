@@ -250,6 +250,17 @@ const Index = () => {
           ),
         }));
       },
+      onImageGenerated: async (result) => {
+        assistantSoFar = result.content;
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId]: prev[convId].map((m) =>
+            m.id === assistantTempId
+              ? { ...m, content: result.content, generatedImages: result.images }
+              : m
+          ),
+        }));
+      },
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
