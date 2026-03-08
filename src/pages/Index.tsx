@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
-import WelcomeScreen from "@/components/chat/WelcomeScreen";
+import WelcomeScreen, { extractDisplayName } from "@/components/chat/WelcomeScreen";
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
@@ -473,7 +473,11 @@ const Index = () => {
 
         <div className="flex-1 overflow-y-auto">
           {activeMessages.length === 0 ? (
-            <WelcomeScreen onSuggestion={(text) => handleSend(text)} />
+            <WelcomeScreen
+              onSuggestion={(text) => handleSend(text)}
+              userName={extractDisplayName(user)}
+              isReturningUser={conversations.length > 0}
+            />
           ) : (
             <div className="mx-auto max-w-3xl py-4">
               {activeMessages.map((msg, idx) => (
