@@ -19,6 +19,7 @@ import {
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({});
