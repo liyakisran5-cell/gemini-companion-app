@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Sparkles, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const isCustomDomain = () =>
+  !window.location.hostname.includes("lovable.app") &&
+  !window.location.hostname.includes("lovableproject.com");
 
 const Auth = () => {
   const { signIn, signUp, resetPassword } = useAuth();
@@ -17,10 +22,31 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) {
+    try {
+      if (isCustomDomain()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin,
+            skipBrowserRedirect: true,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) {
+          const oauthUrl = new URL(data.url);
+          const allowedHosts = ["accounts.google.com"];
+          if (!allowedHosts.some((host) => oauthUrl.hostname === host)) {
+            throw new Error("Invalid OAuth redirect URL");
+          }
+          window.location.href = data.url;
+        }
+      } else {
+        const { error } = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin,
+        });
+        if (error) throw error;
+      }
+    } catch (error: any) {
       toast.error(error.message || "Google sign-in failed");
       setGoogleLoading(false);
     }
@@ -28,10 +54,31 @@ const Auth = () => {
 
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) {
+    try {
+      if (isCustomDomain()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "apple",
+          options: {
+            redirectTo: window.location.origin,
+            skipBrowserRedirect: true,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) {
+          const oauthUrl = new URL(data.url);
+          const allowedHosts = ["appleid.apple.com"];
+          if (!allowedHosts.some((host) => oauthUrl.hostname === host)) {
+            throw new Error("Invalid OAuth redirect URL");
+          }
+          window.location.href = data.url;
+        }
+      } else {
+        const { error } = await lovable.auth.signInWithOAuth("apple", {
+          redirect_uri: window.location.origin,
+        });
+        if (error) throw error;
+      }
+    } catch (error: any) {
       toast.error(error.message || "Apple sign-in failed");
       setAppleLoading(false);
     }
