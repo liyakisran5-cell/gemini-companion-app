@@ -7,7 +7,7 @@ import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
-import { streamChat, attachmentsToImages, ChatMessage as ChatMsg } from "@/lib/chat-stream";
+import { streamChat, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import {
   loadConversations,
   createConversation as dbCreateConv,
@@ -170,10 +170,20 @@ const Index = () => {
           ),
         }));
       },
+      onImageGenerated: async (result) => {
+        assistantSoFar = result.content;
+        setMessagesMap((prev) => ({
+          ...prev,
+          [capturedConvId!]: prev[capturedConvId!].map((m) =>
+            m.id === assistantTempId
+              ? { ...m, content: result.content, generatedImages: result.images }
+              : m
+          ),
+        }));
+      },
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Save assistant message to DB
         try {
           const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({
@@ -237,6 +247,17 @@ const Index = () => {
           ...prev,
           [convId]: prev[convId].map((m) =>
             m.id === assistantTempId ? { ...m, content: captured } : m
+          ),
+        }));
+      },
+      onImageGenerated: async (result) => {
+        assistantSoFar = result.content;
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId]: prev[convId].map((m) =>
+            m.id === assistantTempId
+              ? { ...m, content: result.content, generatedImages: result.images }
+              : m
           ),
         }));
       },

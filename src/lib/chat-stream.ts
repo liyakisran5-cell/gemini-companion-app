@@ -8,16 +8,24 @@ export interface ChatMessage {
   images?: string[]; // base64 data URLs for images
 }
 
+export interface ImageGenerationResult {
+  type: "image_generation";
+  content: string;
+  images: string[];
+}
+
 export async function streamChat({
   messages,
   onDelta,
   onDone,
   onError,
+  onImageGenerated,
 }: {
   messages: ChatMessage[];
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
+  onImageGenerated?: (result: ImageGenerationResult) => void;
 }) {
   try {
     const resp = await fetch(CHAT_URL, {
@@ -40,6 +48,23 @@ export async function streamChat({
       return;
     }
 
+    // Check content type to distinguish image generation (JSON) from streaming (SSE)
+    const contentType = resp.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      // Image generation response
+      const data: ImageGenerationResult = await resp.json();
+      if (data.type === "image_generation" && onImageGenerated) {
+        onImageGenerated(data);
+      } else {
+        // Fallback: treat content as text
+        onDelta(data.content || "");
+      }
+      onDone();
+      return;
+    }
+
+    // Standard SSE streaming
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let textBuffer = "";
