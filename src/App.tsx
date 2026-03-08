@@ -35,7 +35,6 @@ const App = () => (
         <Sonner />
         <InstallPrompt />
         <BrowserRouter>
-        <BrowserRouter>
           <AuthProvider>
             <Routes>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
