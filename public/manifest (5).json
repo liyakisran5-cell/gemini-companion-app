@@ -1,0 +1,56 @@
+{
+  "name": "NovaMind - AI Chat Assistant",
+  "short_name": "NovaMind",
+  "description": "NovaMind is your intelligent AI chat companion. Ask questions, get creative help, solve problems, and have meaningful conversations powered by advanced AI models.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1e",
+  "theme_color": "#d4940a",
+  "lang": "en",
+  "scope": "/",
+  "id": "/",
+  "orientation": "any",
+  "dir": "ltr",
+  "categories": [
+    "productivity",
+    "utilities",
+    "education"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "NovaMind desktop chat interface"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "NovaMind mobile chat interface"
+    }
+  ]
+}
