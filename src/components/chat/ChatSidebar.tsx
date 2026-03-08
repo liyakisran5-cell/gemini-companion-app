@@ -98,6 +98,17 @@ const ChatSidebar = ({
             </motion.div>
           ))}
         </div>
+
+        {/* Sign Out */}
+        <div className="border-t border-border p-3">
+          <button
+            onClick={onSignOut}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 font-display text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
+        </div>
       </motion.aside>
 
       {/* Mobile toggle */}
