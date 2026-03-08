@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { LogOut, Sun, Moon } from "lucide-react";
+import { LogOut, Sun, Moon, Images } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
@@ -47,6 +48,7 @@ const MOCK_VIDEOS = [
 const Index = () => {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({});
@@ -454,6 +456,13 @@ const Index = () => {
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-display text-[10px] font-semibold text-primary">
               NovaMind v1
             </span>
+            <button
+              onClick={() => navigate("/gallery")}
+              title="Batch Gallery"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Images size={16} />
+            </button>
             <button
               onClick={toggleTheme}
               title="Toggle theme"
