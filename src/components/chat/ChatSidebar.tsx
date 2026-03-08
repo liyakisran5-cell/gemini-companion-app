@@ -15,6 +15,7 @@ interface ChatSidebarProps {
   onDelete: (id: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  onSignOut: () => void;
 }
 
 const ChatSidebar = ({
