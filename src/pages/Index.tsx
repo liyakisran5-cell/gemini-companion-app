@@ -1,20 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
-
-const MOCK_RESPONSES = [
-  "That's a great question! Let me break it down for you.\n\n**Key Points:**\n1. First, consider the fundamentals\n2. Then, look at the practical applications\n3. Finally, think about edge cases\n\nWould you like me to elaborate on any of these?",
-  "Here's what I think about that:\n\n```typescript\nconst solution = () => {\n  // A clean, elegant approach\n  return 'Hello World';\n};\n```\n\nThis pattern is commonly used in modern development. Let me know if you'd like me to explain further!",
-  "Absolutely! Here's a comprehensive overview:\n\n## Overview\nThis is a fascinating topic with many layers.\n\n### Benefits\n- **Efficiency**: Streamlined workflows\n- **Scalability**: Grows with your needs\n- **Flexibility**: Adapts to changes\n\n> \"The best way to predict the future is to create it.\" — Peter Drucker\n\nShall I dive deeper into any specific aspect?",
-  "I'd be happy to help with that! 🎯\n\nLet me walk you through the process step by step:\n\n1. **Start with research** — understand the landscape\n2. **Define your goals** — be specific and measurable\n3. **Create a plan** — break it into manageable tasks\n4. **Execute and iterate** — learn from feedback\n\nWhat part would you like to focus on first?",
-];
-
-const IMAGE_RESPONSES = [
-  "I can see the image you've shared! Here's my analysis:\n\n**What I notice:**\n- The composition is well-balanced\n- Colors are vibrant and eye-catching\n- The subject matter is interesting\n\nWould you like me to provide more specific feedback or help with something related to this image?",
-  "Thanks for sharing that image! 📸\n\nHere are some observations:\n\n1. **Quality**: The resolution looks good\n2. **Content**: Very interesting subject\n3. **Suggestions**: Could be enhanced with some adjustments\n\nWhat would you like to do with this image?",
-];
+import { streamChat, attachmentsToImages, ChatMessage as ChatMsg } from "@/lib/chat-stream";
 
 let convCounter = 0;
 
@@ -54,40 +44,7 @@ const Index = () => {
     return id;
   };
 
-  const simulateStream = (convId: string, fullText: string) => {
-    const assistantId = `msg-${Date.now()}-ai`;
-    setMessagesMap((prev) => ({
-      ...prev,
-      [convId]: [
-        ...(prev[convId] || []),
-        { id: assistantId, role: "assistant", content: "" },
-      ],
-    }));
-    setStreamingId(assistantId);
-
-    let i = 0;
-    const interval = setInterval(() => {
-      const chunkSize = Math.floor(Math.random() * 4) + 1;
-      i += chunkSize;
-
-      setMessagesMap((prev) => ({
-        ...prev,
-        [convId]: prev[convId].map((m) =>
-          m.id === assistantId
-            ? { ...m, content: fullText.slice(0, i) }
-            : m
-        ),
-      }));
-
-      if (i >= fullText.length) {
-        clearInterval(interval);
-        setIsLoading(false);
-        setStreamingId(null);
-      }
-    }, 20);
-  };
-
-  const handleSend = (text: string, attachments: Attachment[] = []) => {
+  const handleSend = async (text: string, attachments: Attachment[] = []) => {
     setIsLoading(true);
     let convId = activeConvId;
 
@@ -102,15 +59,69 @@ const Index = () => {
       attachments: attachments.length > 0 ? attachments : undefined,
     };
 
+    // Get existing messages for context
+    const existingMessages = messagesMap[convId] || [];
+
     setMessagesMap((prev) => ({
       ...prev,
       [convId!]: [...(prev[convId!] || []), userMsg],
     }));
 
-    const hasImages = attachments.some((a) => a.type === "image");
-    const responses = hasImages ? IMAGE_RESPONSES : MOCK_RESPONSES;
-    const responseText = responses[Math.floor(Math.random() * responses.length)];
-    setTimeout(() => simulateStream(convId!, responseText), 600);
+    // Build API messages from conversation history
+    const apiMessages: ChatMsg[] = existingMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      images: m.attachments ? attachmentsToImages(m.attachments) : undefined,
+    }));
+
+    // Add current user message
+    const images = attachmentsToImages(attachments);
+    apiMessages.push({
+      role: "user",
+      content: text,
+      images: images.length > 0 ? images : undefined,
+    });
+
+    // Create assistant message placeholder
+    const assistantId = `msg-${Date.now()}-ai`;
+    setMessagesMap((prev) => ({
+      ...prev,
+      [convId!]: [
+        ...(prev[convId!] || []),
+        { id: assistantId, role: "assistant", content: "" },
+      ],
+    }));
+    setStreamingId(assistantId);
+
+    let assistantSoFar = "";
+
+    await streamChat({
+      messages: apiMessages,
+      onDelta: (chunk) => {
+        assistantSoFar += chunk;
+        const captured = assistantSoFar;
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId!]: prev[convId!].map((m) =>
+            m.id === assistantId ? { ...m, content: captured } : m
+          ),
+        }));
+      },
+      onDone: () => {
+        setIsLoading(false);
+        setStreamingId(null);
+      },
+      onError: (error) => {
+        toast.error(error);
+        setIsLoading(false);
+        setStreamingId(null);
+        // Remove empty assistant message on error
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId!]: prev[convId!].filter((m) => m.id !== assistantId),
+        }));
+      },
+    });
   };
 
   const handleNewChat = () => {
