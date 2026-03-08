@@ -7,7 +7,7 @@ import ChatSidebar, { Conversation } from "@/components/chat/ChatSidebar";
 import ChatMessage, { Message, Attachment } from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen from "@/components/chat/WelcomeScreen";
-import { streamChat, attachmentsToImages, ChatMessage as ChatMsg } from "@/lib/chat-stream";
+import { streamChat, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import {
   loadConversations,
   createConversation as dbCreateConv,
