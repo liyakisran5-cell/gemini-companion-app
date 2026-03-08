@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { LogOut, Sun, Moon, Images } from "lucide-react";
+import { LogOut, Sun, Moon, Images, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import GenerationModeSelector, { GenerationMode } from "@/components/chat/Genera
 import ReferralPanel from "@/components/ReferralPanel";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
+import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
 import {
   loadConversations,
   createConversation as dbCreateConv,
@@ -67,6 +68,8 @@ const Index = () => {
   const [videoSettingsOpen, setVideoSettingsOpen] = useState(false);
   const [generationMode, setGenerationMode] = useState<GenerationMode>("image");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [userHasFreeAccess, setUserHasFreeAccess] = useState(false);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   useEffect(() => {
@@ -74,6 +77,13 @@ const Index = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Check free access / admin status
+  useEffect(() => {
+    if (!user) return;
+    hasFreeAccess(user.id).then(setUserHasFreeAccess);
+    checkIsAdmin(user.id).then(setUserIsAdmin);
+  }, [user]);
 
   // Load conversations on mount
   useEffect(() => {
@@ -172,20 +182,22 @@ const Index = () => {
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
 
-    // Check credits before proceeding
+    // Check credits before proceeding (skip for admin/free access)
     const isVideo = isVideoRequest(text);
-    try {
-      const credits = await getUserCredits(user.id);
-      if (isVideo && credits.video_credits <= 0) {
-        toast.error("No video credits! Invite friends to earn credits 🎁");
-        return;
+    if (!userHasFreeAccess) {
+      try {
+        const credits = await getUserCredits(user.id);
+        if (isVideo && credits.video_credits <= 0) {
+          toast.error("No video credits! Invite friends to earn credits 🎁");
+          return;
+        }
+        if (!isVideo && credits.image_credits <= 0) {
+          toast.error("No image credits! Invite friends to earn credits 🎁");
+          return;
+        }
+      } catch (e) {
+        console.error("Credit check failed", e);
       }
-      if (!isVideo && credits.image_credits <= 0) {
-        toast.error("No image credits! Invite friends to earn credits 🎁");
-        return;
-      }
-    } catch (e) {
-      console.error("Credit check failed", e);
     }
 
     setIsLoading(true);
@@ -479,6 +491,15 @@ const Index = () => {
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-display text-[10px] font-semibold text-primary">
               NovaMind v1
             </span>
+            {userIsAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                title="Admin Panel"
+                className="rounded-lg p-1.5 text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <Shield size={16} />
+              </button>
+            )}
             <button
               onClick={() => navigate("/gallery")}
               title="Batch Gallery"
