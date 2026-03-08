@@ -199,6 +199,32 @@ const Index = () => {
       console.error("Failed to save user message", e);
     }
 
+    // Check if this is a video generation request
+    if (isVideoRequest(text)) {
+      const assistantTempId = `temp-ai-${Date.now()}`;
+      const modelName = videoSettings.model === "sora-2" ? "Sora 2" : "Veo 3.1";
+      const content = `🎬 Generating video with **${modelName}**\n\n**Prompt:** ${text}\n**Settings:** ${videoSettings.resolution} · ${videoSettings.duration}s · ${videoSettings.aspectRatio}`;
+
+      setMessagesMap((prev) => ({
+        ...prev,
+        [convId!]: [
+          ...(prev[convId!] || []),
+          { id: assistantTempId, role: "assistant" as const, content, videoProgress: 0 },
+        ],
+      }));
+
+      const capturedConvId = convId!;
+      simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
+        setIsLoading(false);
+        try {
+          await saveMessage(capturedConvId, user.id, "assistant", content);
+        } catch (e) {
+          console.error("Failed to save video message", e);
+        }
+      });
+      return;
+    }
+
     // Build API messages
     const existingMessages = messagesMap[convId!] || [];
     const apiMessages: ChatMsg[] = existingMessages.map((m) => ({
