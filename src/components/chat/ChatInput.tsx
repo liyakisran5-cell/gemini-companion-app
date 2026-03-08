@@ -84,24 +84,6 @@ const ChatInput = ({ onSend, isLoading, showSuggestions = true }: ChatInputProps
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-4 md:px-0">
-      {/* Suggestion chips */}
-      {showSuggestions && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {suggestions.map((s, i) => (
-            <motion.button
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              onClick={() => onSend(s.text, [])}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 font-display text-xs text-muted-foreground transition-all hover:border-primary/40 hover:text-foreground"
-            >
-              <s.icon size={13} className={s.color} />
-              {s.text}
-            </motion.button>
-          ))}
-        </div>
-      )}
 
       {/* Attachment previews */}
       <AnimatePresence>
