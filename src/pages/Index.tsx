@@ -513,12 +513,17 @@ const Index = () => {
         </div>
 
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
-          <VideoSettingsPanel
-            settings={videoSettings}
-            onChange={setVideoSettings}
-            isOpen={videoSettingsOpen}
-            onToggle={() => setVideoSettingsOpen(!videoSettingsOpen)}
-          />
+          <div className="mb-3 flex items-center gap-3">
+            <GenerationModeSelector mode={generationMode} onChange={setGenerationMode} />
+          </div>
+          {generationMode === "video" && (
+            <VideoSettingsPanel
+              settings={videoSettings}
+              onChange={setVideoSettings}
+              isOpen={videoSettingsOpen}
+              onToggle={() => setVideoSettingsOpen(!videoSettingsOpen)}
+            />
+          )}
         </div>
 
         <ChatInput
