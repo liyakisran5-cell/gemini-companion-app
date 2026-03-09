@@ -208,7 +208,7 @@ serve(async (req) => {
 
       const response = await fetch(AI_GATEWAY, {
         method: "POST",
-        headers: authHeaders,
+        headers: aiHeaders,
         body: JSON.stringify({
           model: IMAGE_MODEL,
           messages: [
