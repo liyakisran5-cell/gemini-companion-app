@@ -44,7 +44,12 @@ const ReferralPanel = () => {
     }
   };
 
-  const tierInfo = info.referralCount >= 2
+  const progress50 = Math.min(info.referralCount, 50);
+  const hasCompletedOffer = info.referralCount >= 50;
+
+  const tierInfo = hasCompletedOffer
+    ? { label: "🎉 Free Plan Unlocked!", color: "text-primary" }
+    : info.referralCount >= 2
     ? { label: "Tier 2 — 12 Credits", color: "text-primary" }
     : info.referralCount >= 1
     ? { label: "Tier 1 — 5 Credits", color: "text-accent" }
