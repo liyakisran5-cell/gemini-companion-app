@@ -194,6 +194,18 @@ serve(async (req) => {
         );
       }
 
+      // Credit check for image edit
+      const userId = await getUserFromRequest();
+      if (userId) {
+        const creditCheck = await checkAndDeductImageCredit(userId);
+        if (!creditCheck.allowed) {
+          return new Response(
+            JSON.stringify({ error: creditCheck.error }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       const response = await fetch(AI_GATEWAY, {
         method: "POST",
         headers: authHeaders,
