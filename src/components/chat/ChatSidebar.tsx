@@ -1,5 +1,6 @@
 import { Plus, MessageSquare, Trash2, Menu, X, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReferralPanel from "@/components/ReferralPanel";
 
 export interface Conversation {
   id: string;
