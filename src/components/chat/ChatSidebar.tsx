@@ -100,6 +100,11 @@ const ChatSidebar = ({
           ))}
         </div>
 
+        {/* Referral Program */}
+        <div className="border-t border-border px-3 py-2">
+          <ReferralPanel compact />
+        </div>
+
         {/* Sign Out */}
         <div className="border-t border-border p-3">
           <button
