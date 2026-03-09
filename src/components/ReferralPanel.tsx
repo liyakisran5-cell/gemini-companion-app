@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getReferralInfo, ReferralInfo } from "@/lib/referral-db";
 import { isAdmin } from "@/lib/admin-db";
 
-const ReferralPanel = () => {
+const ReferralPanel = ({ compact = false }: { compact?: boolean }) => {
   const { user } = useAuth();
   const [info, setInfo] = useState<ReferralInfo | null>(null);
   const [copied, setCopied] = useState(false);
