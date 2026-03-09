@@ -104,13 +104,38 @@ const ReferralPanel = () => {
                 </div>
               </div>
 
+              {/* Special Offer */}
+              <div className={`rounded-lg border p-3 ${hasCompletedOffer ? 'border-primary bg-primary/5' : 'border-accent/30 bg-accent/5'}`}>
+                <div className={`font-display text-xs font-bold ${hasCompletedOffer ? 'text-primary' : 'text-accent'}`}>
+                  🎁 Special Offer
+                </div>
+                <div className="mt-1 font-display text-[11px] text-foreground/80">
+                  {hasCompletedOffer
+                    ? "Mubarak ho! 🎉 Aapne 50 invites complete kar liye — aapko 1 saal ka FREE plan mil gaya hai!"
+                    : "50 logon ko invite karo aur 20 special logon ko 1 saal ka FREE plan milega! Ye offer aapko bhi milega jab aap 50 invites complete karoge."}
+                </div>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-display text-[10px] text-muted-foreground">{progress50}/50 Invites</span>
+                    <span className="font-display text-[10px] font-semibold text-accent">{Math.round((progress50 / 50) * 100)}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-accent to-primary transition-all duration-500"
+                      style={{ width: `${(progress50 / 50) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Tier info */}
               <div className="rounded-lg border border-border bg-background p-3">
                 <div className={`font-display text-xs font-semibold ${tierInfo.color}`}>{tierInfo.label}</div>
                 <div className="mt-1 font-display text-[11px] text-muted-foreground">
                   {info.referralCount === 0 && "1 invite = 5 credits · 2 invites = 12 credits"}
                   {info.referralCount === 1 && "1 more invite for 12 total credits!"}
-                  {info.referralCount >= 2 && "Maximum tier reached! 🎉"}
+                  {info.referralCount >= 2 && !hasCompletedOffer && "Maximum credit tier reached! Keep inviting for the special offer! 🎯"}
+                  {hasCompletedOffer && "All rewards unlocked! 🏆"}
                 </div>
               </div>
 
