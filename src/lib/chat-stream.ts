@@ -1,4 +1,5 @@
 import type { Attachment } from "@/components/chat/ChatMessage";
+import { supabase } from "@/integrations/supabase/client";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
