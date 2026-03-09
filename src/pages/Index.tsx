@@ -206,21 +206,29 @@ const Index = () => {
 
     // Create conversation in DB if needed
     if (!convId) {
-      try {
-        const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
-        const dbConv = await dbCreateConv(user.id, title);
-        convId = dbConv.id;
-        setConversations((prev) => [
-          { id: dbConv.id, title: dbConv.title, timestamp: new Date(dbConv.created_at) },
-          ...prev,
-        ]);
-        setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
-        setActiveConvId(convId);
-        setSidebarOpen(false);
-      } catch (e) {
-        toast.error("Failed to create conversation");
-        setIsLoading(false);
-        return;
+      const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
+      // Retry up to 2 times
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const dbConv = await dbCreateConv(user.id, title);
+          convId = dbConv.id;
+          setConversations((prev) => [
+            { id: dbConv.id, title: dbConv.title, timestamp: new Date(dbConv.created_at) },
+            ...prev,
+          ]);
+          setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
+          setActiveConvId(convId);
+          setSidebarOpen(false);
+          break;
+        } catch (e) {
+          console.error(`Conversation creation attempt ${attempt + 1} failed:`, e);
+          if (attempt === 2) {
+            toast.error("Could not start conversation. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 500));
+        }
       }
     }
 
