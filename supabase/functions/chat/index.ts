@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,10 +135,55 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const authHeaders = {
+    const aiHeaders = {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     };
+
+    // Helper: check & deduct image credit for authenticated user
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+    async function getUserFromRequest(): Promise<string | null> {
+      const authHeader = req.headers.get("authorization") || "";
+      const token = authHeader.replace("Bearer ", "");
+      if (!token) return null;
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !user) return null;
+      return user.id;
+    }
+
+    async function checkAndDeductImageCredit(userId: string): Promise<{ allowed: boolean; error?: string }> {
+      // Check free access first
+      const { data: hasFree } = await supabaseAdmin.rpc("has_free_access", { _user_id: userId });
+      if (hasFree) return { allowed: true };
+
+      // Get or create credits
+      const { data: credits } = await supabaseAdmin
+        .from("user_credits")
+        .select("image_credits")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!credits) {
+        // Create row with default 3
+        await supabaseAdmin.from("user_credits").insert({ user_id: userId });
+        // Deduct one
+        await supabaseAdmin.from("user_credits").update({ image_credits: 2 }).eq("user_id", userId);
+        return { allowed: true };
+      }
+
+      if (credits.image_credits <= 0) {
+        return { allowed: false, error: "آپ کی مفت image credits ختم ہو گئی ہیں۔ مزید images بنانے کے لیے plan activate کریں یا دوستوں کو refer کریں۔\n\nYour free image credits are exhausted. Please activate a plan or refer friends to get more credits." };
+      }
+
+      await supabaseAdmin
+        .from("user_credits")
+        .update({ image_credits: credits.image_credits - 1 })
+        .eq("user_id", userId);
+      return { allowed: true };
+    }
 
     // === Image Editing ===
     if (action === "edit_image") {
@@ -148,9 +194,21 @@ serve(async (req) => {
         );
       }
 
+      // Credit check for image edit
+      const userId = await getUserFromRequest();
+      if (userId) {
+        const creditCheck = await checkAndDeductImageCredit(userId);
+        if (!creditCheck.allowed) {
+          return new Response(
+            JSON.stringify({ error: creditCheck.error }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       const response = await fetch(AI_GATEWAY, {
         method: "POST",
-        headers: authHeaders,
+        headers: aiHeaders,
         body: JSON.stringify({
           model: IMAGE_MODEL,
           messages: [
@@ -201,11 +259,23 @@ serve(async (req) => {
 
     // === Image Generation ===
     if (isImageRequest(transformedMessages)) {
+      // Credit check for image generation
+      const userId = await getUserFromRequest();
+      if (userId) {
+        const creditCheck = await checkAndDeductImageCredit(userId);
+        if (!creditCheck.allowed) {
+          return new Response(
+            JSON.stringify({ error: creditCheck.error }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       const userText = getTextContent(transformedMessages);
 
       const response = await fetch(AI_GATEWAY, {
         method: "POST",
-        headers: authHeaders,
+        headers: aiHeaders,
         body: JSON.stringify({
           model: IMAGE_MODEL,
           messages: [{ role: "user", content: userText }],
@@ -236,7 +306,7 @@ serve(async (req) => {
     // === Standard text streaming ===
     const response = await fetch(AI_GATEWAY, {
       method: "POST",
-      headers: authHeaders,
+      headers: aiHeaders,
       body: JSON.stringify({
         model: CHAT_MODEL,
         messages: [
