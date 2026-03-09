@@ -259,6 +259,18 @@ serve(async (req) => {
 
     // === Image Generation ===
     if (isImageRequest(transformedMessages)) {
+      // Credit check for image generation
+      const userId = await getUserFromRequest();
+      if (userId) {
+        const creditCheck = await checkAndDeductImageCredit(userId);
+        if (!creditCheck.allowed) {
+          return new Response(
+            JSON.stringify({ error: creditCheck.error }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       const userText = getTextContent(transformedMessages);
 
       const response = await fetch(AI_GATEWAY, {
