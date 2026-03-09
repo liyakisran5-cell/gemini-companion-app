@@ -29,14 +29,31 @@ const IMAGE_KEYWORDS = [
   "sketch me", "sketch a", "sketch an", "sketch the",
   "show me an image", "show me a picture", "show me a photo",
   "design a", "design an", "design me",
+  // Short/casual triggers
+  "pic of", "pic for", "a pic", "my pic", "make pic", "create pic", "generate pic",
+  "photo of", "photo for", "a photo", "my photo", "make photo",
+  "image of", "image for", "a image", "an image",
+  "picture of", "picture for", "a picture",
+  "wallpaper of", "wallpaper for", "thumbnail of", "thumbnail for",
+  "logo of", "logo for",
+  "banner of", "banner for", "make banner", "create banner",
+  "poster of", "poster for", "make poster", "create poster",
+  "icon of", "icon for", "make icon", "create icon",
+  // Urdu
   "تصویر بنائیں", "تصویر بناؤ", "تصویر بنا دو", "تصویر بنا",
   "فوٹو بنائیں", "فوٹو بناؤ", "فوٹو بنا دو",
   "تھمب نیل بنائیں", "تھمب نیل بناؤ", "تھمب نیل بنا",
-  "پینٹ کرو", "ڈرا کرو",
+  "پینٹ کرو", "ڈرا کرو", "پک بناؤ", "پک بنا", "پک بنائیں",
+  // Hindi
   "तस्वीर बनाओ", "तस्वीर बनाएं", "चित्र बनाओ", "चित्र बनाएं",
   "फोटो बनाओ", "फोटो बनाएं", "इमेज बनाओ", "इमेज बनाएं",
   "थंबनेल बनाओ", "थंबनेल बनाएं",
-  "ड्रा करो", "पेंट करो",
+  "ड्रा करो", "पेंट करो", "पिक बनाओ", "पिक बनाएं",
+];
+
+// Patterns: short phrases like "X pic", "X photo", "create X pic"
+const SHORT_IMAGE_PATTERNS = [
+  /\b(pic|photo|image|picture|logo|banner|poster|wallpaper|thumbnail)\b/i,
 ];
 
 // Patterns that indicate a visual scene description (should route to image generation)
