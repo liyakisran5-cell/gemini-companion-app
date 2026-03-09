@@ -111,7 +111,25 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    // Safely parse request body
+    let body: any;
+    try {
+      const text = await req.text();
+      if (!text || text.trim() === "") {
+        return new Response(
+          JSON.stringify({ error: "Request body is empty" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      body = JSON.parse(text);
+    } catch (parseErr) {
+      console.error("JSON parse error:", parseErr);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const { messages, action, imageUrl, editPrompt } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
