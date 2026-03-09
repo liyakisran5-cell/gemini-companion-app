@@ -10,7 +10,6 @@ import ChatInput from "@/components/chat/ChatInput";
 import WelcomeScreen, { extractDisplayName } from "@/components/chat/WelcomeScreen";
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
-import ReferralPanel from "@/components/ReferralPanel";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
 import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
@@ -87,6 +86,10 @@ const Index = () => {
 
   // Load conversations on mount
   useEffect(() => {
+    if (!user) {
+      setInitialLoading(false);
+      return;
+    }
     const load = async () => {
       try {
         const convs = await loadConversations();
@@ -104,7 +107,7 @@ const Index = () => {
       }
     };
     load();
-  }, []);
+  }, [user]);
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -571,8 +574,6 @@ const Index = () => {
             </div>
           )}
         </div>
-
-        <ReferralPanel />
 
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
           <div className="mb-3 flex items-center gap-3">
