@@ -516,10 +516,10 @@ const Index = () => {
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             <a
-              href="https://whatsapp.com/channel/0029VbCpINqICVfijNrmgc33"
+              href="https://wa.me/923134499704"
               target="_blank"
               rel="noopener noreferrer"
-              title="WhatsApp Channel"
+              title="WhatsApp Help"
               className="rounded-lg p-1.5 text-green-500 transition-colors hover:bg-green-500/10"
             >
               <MessageCircleQuestion size={16} />
