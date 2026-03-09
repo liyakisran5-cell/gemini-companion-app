@@ -79,6 +79,8 @@ function isImageRequest(messages: any[]): boolean {
   const lower = content.toLowerCase();
   // Check explicit keywords
   if (IMAGE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()))) return true;
+  // Check short casual patterns like "Imran Khan pic", "cat photo"
+  if (SHORT_IMAGE_PATTERNS.some((pat) => pat.test(content))) return true;
   // Check scene description patterns (descriptive prompts that are clearly visual)
   if (SCENE_PATTERNS.some((pat) => pat.test(content))) return true;
   return false;
