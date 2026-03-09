@@ -49,7 +49,7 @@ const MOCK_VIDEOS = [
 ];
 
 const Index = () => {
-  const { user, session, loading: authLoading, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -85,12 +85,8 @@ const Index = () => {
     checkIsAdmin(user.id).then(setUserIsAdmin);
   }, [user]);
 
-  // Load conversations on mount — wait for auth to be ready
+  // Load conversations on mount
   useEffect(() => {
-    if (authLoading || !user || !session) {
-      setInitialLoading(false);
-      return;
-    }
     const load = async () => {
       try {
         const convs = await loadConversations();
@@ -108,7 +104,7 @@ const Index = () => {
       }
     };
     load();
-  }, [authLoading, user, session]);
+  }, []);
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -210,29 +206,21 @@ const Index = () => {
 
     // Create conversation in DB if needed
     if (!convId) {
-      const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
-      // Retry up to 2 times
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const dbConv = await dbCreateConv(user.id, title);
-          convId = dbConv.id;
-          setConversations((prev) => [
-            { id: dbConv.id, title: dbConv.title, timestamp: new Date(dbConv.created_at) },
-            ...prev,
-          ]);
-          setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
-          setActiveConvId(convId);
-          setSidebarOpen(false);
-          break;
-        } catch (e) {
-          console.error(`Conversation creation attempt ${attempt + 1} failed:`, e);
-          if (attempt === 2) {
-            toast.error("Could not start conversation. Please try again.");
-            setIsLoading(false);
-            return;
-          }
-          await new Promise((r) => setTimeout(r, 500));
-        }
+      try {
+        const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
+        const dbConv = await dbCreateConv(user.id, title);
+        convId = dbConv.id;
+        setConversations((prev) => [
+          { id: dbConv.id, title: dbConv.title, timestamp: new Date(dbConv.created_at) },
+          ...prev,
+        ]);
+        setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
+        setActiveConvId(convId);
+        setSidebarOpen(false);
+      } catch (e) {
+        toast.error("Failed to create conversation");
+        setIsLoading(false);
+        return;
       }
     }
 
@@ -584,7 +572,7 @@ const Index = () => {
           )}
         </div>
 
-        
+        <ReferralPanel />
 
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
           <div className="mb-3 flex items-center gap-3">

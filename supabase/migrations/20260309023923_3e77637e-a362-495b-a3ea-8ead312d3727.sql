@@ -1,1 +1,0 @@
-UPDATE user_credits SET image_credits = 3 WHERE image_credits = 0;

@@ -24,10 +24,7 @@ export async function createConversation(userId: string, title: string): Promise
     .insert({ user_id: userId, title })
     .select()
     .single();
-  if (error) {
-    console.error("createConversation error:", JSON.stringify(error));
-    throw error;
-  }
+  if (error) throw error;
   return data;
 }
 

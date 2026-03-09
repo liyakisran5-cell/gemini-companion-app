@@ -56,12 +56,13 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
 
   if (data) return data as any;
 
-  // Create initial row — let DB defaults apply (3 free image credits)
-  const { data: newRow } = await supabase.from("user_credits" as any).insert({
+  // Create initial row
+  await supabase.from("user_credits" as any).insert({
     user_id: userId,
-  }).select("image_credits, video_credits").single();
-  if (newRow) return newRow as any;
-  return { image_credits: 3, video_credits: 0 };
+    image_credits: 0,
+    video_credits: 0,
+  });
+  return { image_credits: 0, video_credits: 0 };
 }
 
 /** Deduct one image credit */
