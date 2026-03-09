@@ -85,8 +85,12 @@ const Index = () => {
     checkIsAdmin(user.id).then(setUserIsAdmin);
   }, [user]);
 
-  // Load conversations on mount
+  // Load conversations on mount — wait for auth to be ready
   useEffect(() => {
+    if (authLoading || !user || !session) {
+      setInitialLoading(false);
+      return;
+    }
     const load = async () => {
       try {
         const convs = await loadConversations();
@@ -104,7 +108,7 @@ const Index = () => {
       }
     };
     load();
-  }, []);
+  }, [authLoading, user, session]);
 
   // Load messages when active conversation changes
   useEffect(() => {
