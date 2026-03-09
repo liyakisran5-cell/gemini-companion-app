@@ -306,7 +306,7 @@ serve(async (req) => {
     // === Standard text streaming ===
     const response = await fetch(AI_GATEWAY, {
       method: "POST",
-      headers: authHeaders,
+      headers: aiHeaders,
       body: JSON.stringify({
         model: CHAT_MODEL,
         messages: [
