@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getReferralInfo, ReferralInfo } from "@/lib/referral-db";
 import { isAdmin } from "@/lib/admin-db";
 
-const ReferralPanel = () => {
+const ReferralPanel = ({ compact = false }: { compact?: boolean }) => {
   const { user } = useAuth();
   const [info, setInfo] = useState<ReferralInfo | null>(null);
   const [copied, setCopied] = useState(false);
@@ -56,7 +56,7 @@ const ReferralPanel = () => {
     : { label: "No credits yet", color: "text-muted-foreground" };
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
+    <div className={compact ? "w-full" : "mx-auto w-full max-w-3xl px-4 md:px-0"}>
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-left transition-colors hover:border-primary/30"

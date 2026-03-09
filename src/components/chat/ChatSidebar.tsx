@@ -1,5 +1,6 @@
 import { Plus, MessageSquare, Trash2, Menu, X, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReferralPanel from "@/components/ReferralPanel";
 
 export interface Conversation {
   id: string;
@@ -97,6 +98,11 @@ const ChatSidebar = ({
               </button>
             </motion.div>
           ))}
+        </div>
+
+        {/* Referral Program */}
+        <div className="border-t border-border px-3 py-2">
+          <ReferralPanel compact />
         </div>
 
         {/* Sign Out */}

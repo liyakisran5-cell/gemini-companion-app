@@ -49,7 +49,7 @@ const MOCK_VIDEOS = [
 ];
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  const { user, session, loading: authLoading, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -85,8 +85,12 @@ const Index = () => {
     checkIsAdmin(user.id).then(setUserIsAdmin);
   }, [user]);
 
-  // Load conversations on mount
+  // Load conversations on mount — wait for auth to be ready
   useEffect(() => {
+    if (authLoading || !user || !session) {
+      setInitialLoading(false);
+      return;
+    }
     const load = async () => {
       try {
         const convs = await loadConversations();
@@ -104,7 +108,7 @@ const Index = () => {
       }
     };
     load();
-  }, []);
+  }, [authLoading, user, session]);
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -580,7 +584,7 @@ const Index = () => {
           )}
         </div>
 
-        <ReferralPanel />
+        
 
         <div className="mx-auto w-full max-w-3xl px-4 md:px-0">
           <div className="mb-3 flex items-center gap-3">
