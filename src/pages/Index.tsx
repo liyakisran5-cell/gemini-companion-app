@@ -49,7 +49,7 @@ const MOCK_VIDEOS = [
 ];
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
