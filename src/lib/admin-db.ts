@@ -75,3 +75,11 @@ export async function grantFreeAccess(userId: string): Promise<void> {
 export async function revokeFreeAccess(userId: string): Promise<void> {
   await callAdmin("revoke_free_access", { user_id: userId });
 }
+
+export async function grantTrial(userId: string, days: number): Promise<void> {
+  await callAdmin("grant_trial", { user_id: userId, days });
+}
+
+export async function revokeTrial(userId: string): Promise<void> {
+  await callAdmin("revoke_trial", { user_id: userId });
+}
