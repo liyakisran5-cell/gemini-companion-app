@@ -371,8 +371,8 @@ const Index = () => {
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Deduct image credit on successful generation (skip for admin/free access)
-        if (!userHasFreeAccess && !userIsAdmin) {
+        // Deduct image credit on successful generation (skip for admin/free access/trial)
+        if (!userHasFreeAccess && !userIsAdmin && !userHasTrial) {
           await useImageCredit(user.id);
         }
         try {
