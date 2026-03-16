@@ -290,8 +290,10 @@ const Index = () => {
       }));
 
       const capturedConvId = convId!;
-      // Deduct video credit
-      await useVideoCredit(user.id);
+      // Deduct video credit (skip for admin/free access)
+      if (!userHasFreeAccess && !userIsAdmin) {
+        await useVideoCredit(user.id);
+      }
       simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
         setIsLoading(false);
         try {
