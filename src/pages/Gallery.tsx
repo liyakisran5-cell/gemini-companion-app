@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Images } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasActiveTrial, hasFreeAccess, isAdmin } from "@/lib/admin-db";
 import BatchPromptInput from "@/components/gallery/BatchPromptInput";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
 import {
