@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Copy, Check, Users, Image as ImageIcon, Video, ChevronDown, ChevronUp, Share2 } from "lucide-react";
+import { Gift, Copy, Check, Users, Image as ImageIcon, Video, ChevronDown, ChevronUp, Share2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { getReferralInfo, ReferralInfo } from "@/lib/referral-db";
+import { getReferralInfo, ReferralInfo, getDailyFreeRemaining } from "@/lib/referral-db";
 import { isAdmin } from "@/lib/admin-db";
 
 const ReferralPanel = () => {
