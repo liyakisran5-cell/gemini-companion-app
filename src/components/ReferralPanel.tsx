@@ -63,9 +63,12 @@ const ReferralPanel = () => {
       >
         <Gift className="h-4 w-4 text-primary" />
         <span className="flex-1 font-display text-xs font-medium text-foreground">
-          Referral
+          Credits & Referral
         </span>
         <div className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 font-display text-[9px] font-semibold text-primary">
+            <Sparkles className="h-2.5 w-2.5" /> {getDailyFreeRemaining(info.credits)}/10 Free
+          </span>
           <span className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 font-display text-[9px] font-semibold text-primary">
             <ImageIcon className="h-2.5 w-2.5" /> {info.credits.image_credits}
           </span>
