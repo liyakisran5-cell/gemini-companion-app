@@ -354,8 +354,10 @@ const Index = () => {
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Deduct image credit on successful generation
-        await useImageCredit(user.id);
+        // Deduct image credit on successful generation (skip for admin/free access)
+        if (!userHasFreeAccess && !userIsAdmin) {
+          await useImageCredit(user.id);
+        }
         try {
           const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({
