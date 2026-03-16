@@ -533,9 +533,15 @@ const Index = () => {
               : "New Conversation"}
           </h3>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-display text-[10px] font-semibold text-primary">
-              NovaMind v1
-            </span>
+            {userHasTrial ? (
+              <span className="rounded-full bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 px-2.5 py-0.5 font-display text-[10px] font-bold text-primary">
+                ✨ Pro Active
+              </span>
+            ) : (
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-display text-[10px] font-semibold text-primary">
+                NovaMind v1
+              </span>
+            )}
             {userIsAdmin && (
               <button
                 onClick={() => navigate("/admin")}

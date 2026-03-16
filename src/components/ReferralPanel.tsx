@@ -23,7 +23,19 @@ const ReferralPanel = () => {
     getReferralInfo(user.id).then(setInfo).catch(console.error);
   }, [user]);
 
-  if (!info || isAdminUser) return null;
+  if (!info) return null;
+
+  // Admin users: show Pro badge if they have a trial, otherwise show admin badge
+  if (isAdminUser && !hasTrial) {
+    return (
+      <div className="w-full">
+        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2">
+          <Crown className="h-4 w-4 text-primary" />
+          <span className="font-display text-xs font-bold text-primary">Admin — Unlimited Access</span>
+        </div>
+      </div>
+    );
+  }
 
   // If user has active trial, show Pro badge
   if (hasTrial && trial) {
