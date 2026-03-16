@@ -26,6 +26,13 @@ const Gallery = () => {
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [promptStatuses, setPromptStatuses] = useState<PromptStatus[]>([]);
+  const [bypassCredits, setBypassCredits] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([isAdmin(user.id), hasFreeAccess(user.id), hasActiveTrial(user.id)])
+      .then(([admin, free, trial]) => setBypassCredits(admin || free || trial));
+  }, [user]);
 
   useEffect(() => {
     loadGalleryImages()
