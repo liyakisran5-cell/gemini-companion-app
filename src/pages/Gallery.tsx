@@ -104,7 +104,7 @@ const Gallery = () => {
 
       setIsGenerating(false);
     },
-    [user]
+    [user, bypassCredits]
   );
 
   const handleDelete = async (id: string) => {
