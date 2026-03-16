@@ -207,20 +207,31 @@ const Index = () => {
 
     // Check credits before proceeding (skip for admin/free access)
     const isVideo = isVideoRequest(text);
-    if (!userHasFreeAccess && !userIsAdmin) {
+    const bypassCredits = userHasFreeAccess || userIsAdmin || userHasTrial;
+    if (!bypassCredits) {
       try {
         const credits = await getUserCredits(user.id);
         if (isVideo && credits.video_credits <= 0) {
-          toast.error("No video credits! Invite friends to earn credits 🎁");
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>No video credits!</span>
+              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp Channel for updates</a>
+            </div>,
+            { duration: 6000 }
+          );
           return;
         }
         if (!isVideo) {
-          // Check daily free + paid credits
           const hasDaily = hasDailyFreeRemaining(credits);
           const hasPaid = credits.image_credits > 0;
           if (!hasDaily && !hasPaid) {
-            const remaining = getDailyFreeRemaining(credits);
-            toast.error(`Daily free limit reached (${remaining}/10)! Come back tomorrow or invite friends 🎁`);
+            toast.error(
+              <div className="flex flex-col gap-1">
+                <span>Daily free limit reached! Come back tomorrow or invite friends 🎁</span>
+                <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join our WhatsApp Channel</a>
+              </div>,
+              { duration: 6000 }
+            );
             return;
           }
         }
