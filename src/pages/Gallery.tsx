@@ -79,7 +79,7 @@ const Gallery = () => {
             prompts[i],
             (image) => {
               setImages((prev) => [image, ...prev]);
-              useImageCredit(user.id); // Deduct credit
+              if (!bypassCredits) useImageCredit(user.id); // Deduct credit
               setPromptStatuses((prev) =>
                 prev.map((s, idx) => (idx === i ? { ...s, status: "done" } : s))
               );
