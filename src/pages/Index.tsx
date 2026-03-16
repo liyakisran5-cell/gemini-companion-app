@@ -69,6 +69,7 @@ const Index = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [userHasFreeAccess, setUserHasFreeAccess] = useState(false);
   const [userIsAdmin, setUserIsAdmin] = useState(false);
+  const [userHasTrial, setUserHasTrial] = useState(false);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   useEffect(() => {
