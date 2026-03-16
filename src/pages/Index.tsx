@@ -305,8 +305,8 @@ const Index = () => {
       }));
 
       const capturedConvId = convId!;
-      // Deduct video credit (skip for admin/free access)
-      if (!userHasFreeAccess && !userIsAdmin) {
+      // Deduct video credit (skip for admin/free access/trial)
+      if (!bypassCredits) {
         await useVideoCredit(user.id);
       }
       simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
