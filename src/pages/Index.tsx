@@ -11,7 +11,7 @@ import WelcomeScreen, { extractDisplayName } from "@/components/chat/WelcomeScre
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
-import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
+import { getUserCredits, useImageCredit, useVideoCredit, hasDailyFreeRemaining, getDailyFreeRemaining } from "@/lib/referral-db";
 import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
 import {
   loadConversations,
