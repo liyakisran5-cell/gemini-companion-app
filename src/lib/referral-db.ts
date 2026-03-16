@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface UserCredits {
   image_credits: number;
   video_credits: number;
+  daily_free_used: number;
+  daily_reset_date: string;
 }
 
 export interface ReferralInfo {
@@ -10,6 +12,8 @@ export interface ReferralInfo {
   referralCount: number;
   credits: UserCredits;
 }
+
+const DAILY_FREE_LIMIT = 10;
 
 function generateCode(): string {
   return "NM-" + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -40,34 +44,74 @@ export async function getReferralCount(userId: string): Promise<number> {
 }
 
 /** Calculate credits based on referral count */
-export function calculateCredits(referralCount: number): UserCredits {
+export function calculateCredits(referralCount: number): { image_credits: number; video_credits: number } {
   if (referralCount >= 2) return { image_credits: 12, video_credits: 12 };
   if (referralCount >= 1) return { image_credits: 5, video_credits: 5 };
   return { image_credits: 0, video_credits: 0 };
+}
+
+function getTodayDate(): string {
+  return new Date().toISOString().split("T")[0];
 }
 
 /** Get or create user credits row and return current credits */
 export async function getUserCredits(userId: string): Promise<UserCredits> {
   const { data } = await supabase
     .from("user_credits" as any)
-    .select("image_credits, video_credits")
+    .select("image_credits, video_credits, daily_free_used, daily_reset_date")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (data) return data as any;
+  if (data) {
+    const credits = data as any;
+    const today = getTodayDate();
+    // Reset daily counter if it's a new day
+    if (credits.daily_reset_date !== today) {
+      await supabase
+        .from("user_credits" as any)
+        .update({ daily_free_used: 0, daily_reset_date: today, updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
+      return { ...credits, daily_free_used: 0, daily_reset_date: today };
+    }
+    return credits;
+  }
 
   // Create initial row
+  const today = getTodayDate();
   await supabase.from("user_credits" as any).insert({
     user_id: userId,
     image_credits: 0,
     video_credits: 0,
+    daily_free_used: 0,
+    daily_reset_date: today,
   });
-  return { image_credits: 0, video_credits: 0 };
+  return { image_credits: 0, video_credits: 0, daily_free_used: 0, daily_reset_date: today };
 }
 
-/** Deduct one image credit */
+/** Check if user has daily free images remaining */
+export function hasDailyFreeRemaining(credits: UserCredits): boolean {
+  return credits.daily_free_used < DAILY_FREE_LIMIT;
+}
+
+/** Get remaining daily free images */
+export function getDailyFreeRemaining(credits: UserCredits): number {
+  return Math.max(0, DAILY_FREE_LIMIT - credits.daily_free_used);
+}
+
+/** Deduct one image credit - uses daily free first, then paid credits */
 export async function useImageCredit(userId: string): Promise<boolean> {
   const credits = await getUserCredits(userId);
+  
+  // Use daily free first
+  if (credits.daily_free_used < DAILY_FREE_LIMIT) {
+    await supabase
+      .from("user_credits" as any)
+      .update({ daily_free_used: credits.daily_free_used + 1, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+    return true;
+  }
+
+  // Then use paid credits
   if (credits.image_credits <= 0) return false;
 
   await supabase
@@ -101,7 +145,6 @@ export async function lookupReferralCode(code: string): Promise<string | null> {
 
 /** Record a referral and award credits */
 export async function recordReferral(referrerId: string, referredId: string): Promise<void> {
-  // Insert referral record
   const { error } = await supabase
     .from("referrals" as any)
     .insert({ referrer_id: referrerId, referred_id: referredId });
@@ -111,11 +154,9 @@ export async function recordReferral(referrerId: string, referredId: string): Pr
     return;
   }
 
-  // Count total referrals and update credits
   const count = await getReferralCount(referrerId);
   const credits = calculateCredits(count);
 
-  // Upsert credits
   const { data: existing } = await supabase
     .from("user_credits" as any)
     .select("user_id")

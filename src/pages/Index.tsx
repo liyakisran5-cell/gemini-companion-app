@@ -11,7 +11,7 @@ import WelcomeScreen, { extractDisplayName } from "@/components/chat/WelcomeScre
 import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettingsPanel";
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
-import { getUserCredits, useImageCredit, useVideoCredit } from "@/lib/referral-db";
+import { getUserCredits, useImageCredit, useVideoCredit, hasDailyFreeRemaining, getDailyFreeRemaining } from "@/lib/referral-db";
 import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
 import {
   loadConversations,
@@ -79,9 +79,25 @@ const Index = () => {
 
   // Check free access / admin status
   useEffect(() => {
-    if (!user) return;
-    hasFreeAccess(user.id).then(setUserHasFreeAccess);
-    checkIsAdmin(user.id).then(setUserIsAdmin);
+    if (!user) {
+      setUserHasFreeAccess(false);
+      setUserIsAdmin(false);
+      return;
+    }
+    const checkAccess = async () => {
+      try {
+        const [freeAccess, admin] = await Promise.all([
+          hasFreeAccess(user.id),
+          checkIsAdmin(user.id),
+        ]);
+        console.log("Admin check for", user.email, ":", admin, "Free access:", freeAccess);
+        setUserHasFreeAccess(freeAccess);
+        setUserIsAdmin(admin);
+      } catch (e) {
+        console.error("Access check failed", e);
+      }
+    };
+    checkAccess();
   }, [user]);
 
   // Load conversations on mount
@@ -187,16 +203,22 @@ const Index = () => {
 
     // Check credits before proceeding (skip for admin/free access)
     const isVideo = isVideoRequest(text);
-    if (!userHasFreeAccess) {
+    if (!userHasFreeAccess && !userIsAdmin) {
       try {
         const credits = await getUserCredits(user.id);
         if (isVideo && credits.video_credits <= 0) {
           toast.error("No video credits! Invite friends to earn credits 🎁");
           return;
         }
-        if (!isVideo && credits.image_credits <= 0) {
-          toast.error("No image credits! Invite friends to earn credits 🎁");
-          return;
+        if (!isVideo) {
+          // Check daily free + paid credits
+          const hasDaily = hasDailyFreeRemaining(credits);
+          const hasPaid = credits.image_credits > 0;
+          if (!hasDaily && !hasPaid) {
+            const remaining = getDailyFreeRemaining(credits);
+            toast.error(`Daily free limit reached (${remaining}/10)! Come back tomorrow or invite friends 🎁`);
+            return;
+          }
         }
       } catch (e) {
         console.error("Credit check failed", e);
@@ -268,8 +290,10 @@ const Index = () => {
       }));
 
       const capturedConvId = convId!;
-      // Deduct video credit
-      await useVideoCredit(user.id);
+      // Deduct video credit (skip for admin/free access)
+      if (!userHasFreeAccess && !userIsAdmin) {
+        await useVideoCredit(user.id);
+      }
       simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
         setIsLoading(false);
         try {
@@ -332,8 +356,10 @@ const Index = () => {
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Deduct image credit on successful generation
-        await useImageCredit(user.id);
+        // Deduct image credit on successful generation (skip for admin/free access)
+        if (!userHasFreeAccess && !userIsAdmin) {
+          await useImageCredit(user.id);
+        }
         try {
           const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({

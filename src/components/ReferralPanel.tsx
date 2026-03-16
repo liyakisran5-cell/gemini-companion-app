@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Copy, Check, Users, Image as ImageIcon, Video, ChevronDown, ChevronUp, Share2 } from "lucide-react";
+import { Gift, Copy, Check, Users, Image as ImageIcon, Video, ChevronDown, ChevronUp, Share2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { getReferralInfo, ReferralInfo } from "@/lib/referral-db";
+import { getReferralInfo, ReferralInfo, getDailyFreeRemaining } from "@/lib/referral-db";
 import { isAdmin } from "@/lib/admin-db";
 
 const ReferralPanel = () => {
@@ -63,9 +63,12 @@ const ReferralPanel = () => {
       >
         <Gift className="h-4 w-4 text-primary" />
         <span className="flex-1 font-display text-xs font-medium text-foreground">
-          Referral
+          Credits & Referral
         </span>
         <div className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 font-display text-[9px] font-semibold text-primary">
+            <Sparkles className="h-2.5 w-2.5" /> {getDailyFreeRemaining(info.credits)}/10 Free
+          </span>
           <span className="flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 font-display text-[9px] font-semibold text-primary">
             <ImageIcon className="h-2.5 w-2.5" /> {info.credits.image_credits}
           </span>
@@ -85,6 +88,33 @@ const ReferralPanel = () => {
             className="overflow-hidden"
           >
             <div className="mt-2 rounded-xl border border-border bg-card p-3 space-y-3">
+              {/* Daily Free Trial */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-2">
+                <div className="flex items-center gap-1 mb-1">
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  <span className="font-display text-[10px] font-bold text-primary">Daily Free Trial</span>
+                </div>
+                <div className="font-display text-[9px] text-foreground/80">
+                  Rozana 10 images FREE! Har roz reset hota hai 🔄
+                </div>
+                <div className="mt-1.5">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="font-display text-[9px] text-muted-foreground">
+                      {info.credits.daily_free_used}/10 used
+                    </span>
+                    <span className="font-display text-[9px] font-semibold text-primary">
+                      {getDailyFreeRemaining(info.credits)} remaining
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+                      style={{ width: `${(info.credits.daily_free_used / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg bg-secondary p-2 text-center">
@@ -95,7 +125,7 @@ const ReferralPanel = () => {
                 <div className="rounded-lg bg-secondary p-2 text-center">
                   <ImageIcon className="mx-auto mb-0.5 h-3 w-3 text-primary" />
                   <div className="font-display text-sm font-bold text-foreground">{info.credits.image_credits}</div>
-                  <div className="font-display text-[9px] text-muted-foreground">Image</div>
+                  <div className="font-display text-[9px] text-muted-foreground">Paid Credits</div>
                 </div>
                 <div className="rounded-lg bg-secondary p-2 text-center">
                   <Video className="mx-auto mb-0.5 h-3 w-3 text-accent" />

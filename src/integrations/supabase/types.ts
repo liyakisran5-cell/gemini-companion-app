@@ -165,6 +165,8 @@ export type Database = {
       }
       user_credits: {
         Row: {
+          daily_free_used: number
+          daily_reset_date: string
           id: string
           image_credits: number
           updated_at: string
@@ -172,6 +174,8 @@ export type Database = {
           video_credits: number
         }
         Insert: {
+          daily_free_used?: number
+          daily_reset_date?: string
           id?: string
           image_credits?: number
           updated_at?: string
@@ -179,6 +183,8 @@ export type Database = {
           video_credits?: number
         }
         Update: {
+          daily_free_used?: number
+          daily_reset_date?: string
           id?: string
           image_credits?: number
           updated_at?: string
