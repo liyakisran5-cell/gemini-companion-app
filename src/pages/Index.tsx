@@ -83,17 +83,20 @@ const Index = () => {
     if (!user) {
       setUserHasFreeAccess(false);
       setUserIsAdmin(false);
+      setUserHasTrial(false);
       return;
     }
     const checkAccess = async () => {
       try {
-        const [freeAccess, admin] = await Promise.all([
+        const [freeAccess, admin, trial] = await Promise.all([
           hasFreeAccess(user.id),
           checkIsAdmin(user.id),
+          hasActiveTrial(user.id),
         ]);
-        console.log("Admin check for", user.email, ":", admin, "Free access:", freeAccess);
+        console.log("Admin check for", user.email, ":", admin, "Free access:", freeAccess, "Trial:", trial);
         setUserHasFreeAccess(freeAccess);
         setUserIsAdmin(admin);
+        setUserHasTrial(trial);
       } catch (e) {
         console.error("Access check failed", e);
       }

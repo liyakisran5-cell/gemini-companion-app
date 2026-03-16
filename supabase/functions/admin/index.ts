@@ -61,18 +61,25 @@ serve(async (req) => {
         });
         if (error) throw error;
 
-        // Get free access users
         const { data: freeUsers } = await adminClient
           .from("free_access_users")
           .select("user_id");
 
+        const { data: trials } = await adminClient
+          .from("user_trials")
+          .select("user_id, end_date, days")
+          .gte("end_date", new Date().toISOString());
+
         const freeUserIds = new Set((freeUsers || []).map((u: any) => u.user_id));
+        const trialMap = new Map((trials || []).map((t: any) => [t.user_id, t]));
 
         const mapped = users.map((u: any) => ({
           id: u.id,
           email: u.email,
           created_at: u.created_at,
           has_free_access: freeUserIds.has(u.id),
+          trial_end: trialMap.get(u.id)?.end_date || null,
+          trial_days: trialMap.get(u.id)?.days || null,
         }));
 
         return new Response(JSON.stringify({ users: mapped }), {
@@ -95,6 +102,35 @@ serve(async (req) => {
         const { user_id } = params;
         const { error } = await adminClient
           .from("free_access_users")
+          .delete()
+          .eq("user_id", user_id);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "grant_trial": {
+        const { user_id, days } = params;
+        const end_date = new Date();
+        end_date.setDate(end_date.getDate() + (days || 7));
+        
+        // Delete existing trials for user first
+        await adminClient.from("user_trials").delete().eq("user_id", user_id);
+        
+        const { error } = await adminClient
+          .from("user_trials")
+          .insert({ user_id, days: days || 7, end_date: end_date.toISOString(), granted_by: user.id });
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "revoke_trial": {
+        const { user_id } = params;
+        const { error } = await adminClient
+          .from("user_trials")
           .delete()
           .eq("user_id", user_id);
         if (error) throw error;
