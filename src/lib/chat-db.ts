@@ -19,13 +19,28 @@ export async function loadConversations(): Promise<DbConversation[]> {
 }
 
 export async function createConversation(userId: string, title: string): Promise<DbConversation> {
-  const { data, error } = await supabase
-    .from("conversations")
-    .insert({ user_id: userId, title })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  // Refresh session before creating to avoid stale JWT
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    // Try refreshing the session
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) throw new Error("Session expired. Please sign in again.");
+  }
+
+  // Retry up to 3 times with delay
+  let lastError: any = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 500 * attempt));
+    const { data, error } = await supabase
+      .from("conversations")
+      .insert({ user_id: userId, title })
+      .select()
+      .single();
+    if (!error && data) return data;
+    lastError = error;
+    console.warn(`createConversation attempt ${attempt + 1} failed:`, error?.message);
+  }
+  throw lastError;
 }
 
 export async function updateConversationTitle(id: string, title: string) {
