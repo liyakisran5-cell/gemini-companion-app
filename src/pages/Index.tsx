@@ -12,7 +12,7 @@ import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettin
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import { getUserCredits, useImageCredit, useVideoCredit, hasDailyFreeRemaining, getDailyFreeRemaining } from "@/lib/referral-db";
-import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
+import { hasFreeAccess, isAdmin as checkIsAdmin, hasActiveTrial } from "@/lib/admin-db";
 import {
   loadConversations,
   createConversation as dbCreateConv,
@@ -69,6 +69,7 @@ const Index = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [userHasFreeAccess, setUserHasFreeAccess] = useState(false);
   const [userIsAdmin, setUserIsAdmin] = useState(false);
+  const [userHasTrial, setUserHasTrial] = useState(false);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   useEffect(() => {
@@ -82,17 +83,20 @@ const Index = () => {
     if (!user) {
       setUserHasFreeAccess(false);
       setUserIsAdmin(false);
+      setUserHasTrial(false);
       return;
     }
     const checkAccess = async () => {
       try {
-        const [freeAccess, admin] = await Promise.all([
+        const [freeAccess, admin, trial] = await Promise.all([
           hasFreeAccess(user.id),
           checkIsAdmin(user.id),
+          hasActiveTrial(user.id),
         ]);
-        console.log("Admin check for", user.email, ":", admin, "Free access:", freeAccess);
+        console.log("Admin check for", user.email, ":", admin, "Free access:", freeAccess, "Trial:", trial);
         setUserHasFreeAccess(freeAccess);
         setUserIsAdmin(admin);
+        setUserHasTrial(trial);
       } catch (e) {
         console.error("Access check failed", e);
       }
@@ -203,20 +207,31 @@ const Index = () => {
 
     // Check credits before proceeding (skip for admin/free access)
     const isVideo = isVideoRequest(text);
-    if (!userHasFreeAccess && !userIsAdmin) {
+    const bypassCredits = userHasFreeAccess || userIsAdmin || userHasTrial;
+    if (!bypassCredits) {
       try {
         const credits = await getUserCredits(user.id);
         if (isVideo && credits.video_credits <= 0) {
-          toast.error("No video credits! Invite friends to earn credits 🎁");
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>No video credits!</span>
+              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp Channel for updates</a>
+            </div>,
+            { duration: 6000 }
+          );
           return;
         }
         if (!isVideo) {
-          // Check daily free + paid credits
           const hasDaily = hasDailyFreeRemaining(credits);
           const hasPaid = credits.image_credits > 0;
           if (!hasDaily && !hasPaid) {
-            const remaining = getDailyFreeRemaining(credits);
-            toast.error(`Daily free limit reached (${remaining}/10)! Come back tomorrow or invite friends 🎁`);
+            toast.error(
+              <div className="flex flex-col gap-1">
+                <span>Daily free limit reached! Come back tomorrow or invite friends 🎁</span>
+                <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join our WhatsApp Channel</a>
+              </div>,
+              { duration: 6000 }
+            );
             return;
           }
         }
@@ -290,8 +305,8 @@ const Index = () => {
       }));
 
       const capturedConvId = convId!;
-      // Deduct video credit (skip for admin/free access)
-      if (!userHasFreeAccess && !userIsAdmin) {
+      // Deduct video credit (skip for admin/free access/trial)
+      if (!bypassCredits) {
         await useVideoCredit(user.id);
       }
       simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
@@ -356,8 +371,8 @@ const Index = () => {
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Deduct image credit on successful generation (skip for admin/free access)
-        if (!userHasFreeAccess && !userIsAdmin) {
+        // Deduct image credit on successful generation (skip for admin/free access/trial)
+        if (!userHasFreeAccess && !userIsAdmin && !userHasTrial) {
           await useImageCredit(user.id);
         }
         try {

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Images } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasActiveTrial, hasFreeAccess, isAdmin } from "@/lib/admin-db";
 import BatchPromptInput from "@/components/gallery/BatchPromptInput";
 import GalleryGrid from "@/components/gallery/GalleryGrid";
 import {
@@ -11,7 +12,7 @@ import {
   deleteGalleryImage,
   generateAndSaveImage,
 } from "@/lib/gallery-db";
-import { getUserCredits, useImageCredit } from "@/lib/referral-db";
+import { getUserCredits, useImageCredit, hasDailyFreeRemaining } from "@/lib/referral-db";
 
 interface PromptStatus {
   prompt: string;
@@ -25,6 +26,13 @@ const Gallery = () => {
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [promptStatuses, setPromptStatuses] = useState<PromptStatus[]>([]);
+  const [bypassCredits, setBypassCredits] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([isAdmin(user.id), hasFreeAccess(user.id), hasActiveTrial(user.id)])
+      .then(([admin, free, trial]) => setBypassCredits(admin || free || trial));
+  }, [user]);
 
   useEffect(() => {
     loadGalleryImages()
@@ -40,11 +48,19 @@ const Gallery = () => {
     async (prompts: string[]) => {
       if (!user) return;
 
-      // Check credits
-      const credits = await getUserCredits(user.id);
-      if (credits.image_credits < prompts.length) {
-        toast.error(`Not enough credits! You have ${credits.image_credits} but need ${prompts.length}. Invite friends to earn more! 🎁`);
-        return;
+      // Check credits (skip for admin/free/trial)
+      if (!bypassCredits) {
+        const credits = await getUserCredits(user.id);
+        if (credits.image_credits < prompts.length && !hasDailyFreeRemaining(credits)) {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>Not enough credits! You need {prompts.length}.</span>
+              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp Channel</a>
+            </div>,
+            { duration: 6000 }
+          );
+          return;
+        }
       }
 
       setIsGenerating(true);
@@ -63,7 +79,7 @@ const Gallery = () => {
             prompts[i],
             (image) => {
               setImages((prev) => [image, ...prev]);
-              useImageCredit(user.id); // Deduct credit
+              if (!bypassCredits) useImageCredit(user.id); // Deduct credit
               setPromptStatuses((prev) =>
                 prev.map((s, idx) => (idx === i ? { ...s, status: "done" } : s))
               );

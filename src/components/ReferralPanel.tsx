@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Copy, Check, Users, Image as ImageIcon, Video, ChevronDown, ChevronUp, Share2, Sparkles } from "lucide-react";
+import { Gift, Copy, Check, Users, Image as ImageIcon, Video, ChevronDown, ChevronUp, Share2, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReferralInfo, ReferralInfo, getDailyFreeRemaining } from "@/lib/referral-db";
-import { isAdmin } from "@/lib/admin-db";
+import { isAdmin, hasActiveTrial, getUserTrial, UserTrial } from "@/lib/admin-db";
 
 const ReferralPanel = () => {
   const { user } = useAuth();
@@ -12,14 +12,91 @@ const ReferralPanel = () => {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [trial, setTrial] = useState<UserTrial | null>(null);
+  const [hasTrial, setHasTrial] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     isAdmin(user.id).then(setIsAdminUser);
+    hasActiveTrial(user.id).then(setHasTrial);
+    getUserTrial(user.id).then(setTrial);
     getReferralInfo(user.id).then(setInfo).catch(console.error);
   }, [user]);
 
   if (!info || isAdminUser) return null;
+
+  // If user has active trial, show Pro badge
+  if (hasTrial && trial) {
+    const remainingDays = Math.max(0, Math.ceil((new Date(trial.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    
+    return (
+      <div className="w-full">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex w-full items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-left transition-colors hover:border-primary/50"
+        >
+          <Crown className="h-4 w-4 text-primary" />
+          <span className="flex-1 font-display text-xs font-bold text-primary">
+            Pro Active
+          </span>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 font-display text-[9px] font-bold text-primary">
+            {remainingDays}d left
+          </span>
+          {expanded ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />}
+        </button>
+
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  <span className="font-display text-sm font-bold text-primary">Pro Plan</span>
+                </div>
+                <p className="font-display text-[10px] text-foreground/80">
+                  Unlimited image & video generation! {remainingDays} din baqi hain ✨
+                </p>
+                <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+                    style={{ width: `${(remainingDays / trial.days) * 100}%` }}
+                  />
+                </div>
+
+                {/* Referral link still available */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="font-display text-[9px] font-medium text-muted-foreground">Referral Link</label>
+                  <div className="flex gap-1.5">
+                    <input
+                      readOnly
+                      value={`${window.location.origin}/auth?ref=${info.code}`}
+                      className="flex-1 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-[9px] text-foreground"
+                    />
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(`${window.location.origin}/auth?ref=${info.code}`);
+                        setCopied(true);
+                        toast.success("Referral link copied!");
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="rounded-lg border border-border bg-secondary px-2 py-1.5 transition-colors hover:bg-primary hover:text-primary-foreground"
+                    >
+                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   const referralLink = `${window.location.origin}/auth?ref=${info.code}`;
 
