@@ -12,7 +12,7 @@ import VideoSettingsPanel, { VideoSettings } from "@/components/chat/VideoSettin
 import GenerationModeSelector, { GenerationMode } from "@/components/chat/GenerationModeSelector";
 import { streamChat, editImage, attachmentsToImages, ChatMessage as ChatMsg, ImageGenerationResult } from "@/lib/chat-stream";
 import { getUserCredits, useImageCredit, useVideoCredit, hasDailyFreeRemaining, getDailyFreeRemaining } from "@/lib/referral-db";
-import { hasFreeAccess, isAdmin as checkIsAdmin } from "@/lib/admin-db";
+import { hasFreeAccess, isAdmin as checkIsAdmin, hasActiveTrial } from "@/lib/admin-db";
 import {
   loadConversations,
   createConversation as dbCreateConv,
