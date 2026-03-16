@@ -79,9 +79,25 @@ const Index = () => {
 
   // Check free access / admin status
   useEffect(() => {
-    if (!user) return;
-    hasFreeAccess(user.id).then(setUserHasFreeAccess);
-    checkIsAdmin(user.id).then(setUserIsAdmin);
+    if (!user) {
+      setUserHasFreeAccess(false);
+      setUserIsAdmin(false);
+      return;
+    }
+    const checkAccess = async () => {
+      try {
+        const [freeAccess, admin] = await Promise.all([
+          hasFreeAccess(user.id),
+          checkIsAdmin(user.id),
+        ]);
+        console.log("Admin check for", user.email, ":", admin, "Free access:", freeAccess);
+        setUserHasFreeAccess(freeAccess);
+        setUserIsAdmin(admin);
+      } catch (e) {
+        console.error("Access check failed", e);
+      }
+    };
+    checkAccess();
   }, [user]);
 
   // Load conversations on mount
