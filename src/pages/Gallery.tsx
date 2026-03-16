@@ -48,11 +48,19 @@ const Gallery = () => {
     async (prompts: string[]) => {
       if (!user) return;
 
-      // Check credits
-      const credits = await getUserCredits(user.id);
-      if (credits.image_credits < prompts.length) {
-        toast.error(`Not enough credits! You have ${credits.image_credits} but need ${prompts.length}. Invite friends to earn more! 🎁`);
-        return;
+      // Check credits (skip for admin/free/trial)
+      if (!bypassCredits) {
+        const credits = await getUserCredits(user.id);
+        if (credits.image_credits < prompts.length && !hasDailyFreeRemaining(credits)) {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>Not enough credits! You need {prompts.length}.</span>
+              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp Channel</a>
+            </div>,
+            { duration: 6000 }
+          );
+          return;
+        }
       }
 
       setIsGenerating(true);
