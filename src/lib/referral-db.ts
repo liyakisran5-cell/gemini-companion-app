@@ -92,16 +92,14 @@ export async function useImageCredit(userId: string): Promise<boolean> {
   return !!data;
 }
 
-/** Deduct one video credit */
+/** Deduct one video credit - uses secure server-side RPC */
 export async function useVideoCredit(userId: string): Promise<boolean> {
-  const credits = await getUserCredits(userId);
-  if (credits.video_credits <= 0) return false;
-
-  await supabase
-    .from("user_credits" as any)
-    .update({ video_credits: credits.video_credits - 1, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-  return true;
+  const { data, error } = await supabase.rpc("deduct_video_credit", { _user_id: userId });
+  if (error) {
+    console.error("Video credit deduction error:", error);
+    return false;
+  }
+  return !!data;
 }
 
 /** Look up a referral code and return the owner's user_id */
