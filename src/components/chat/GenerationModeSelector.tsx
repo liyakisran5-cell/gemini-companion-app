@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { Image as ImageIcon, Video } from "lucide-react";
+import { Image as ImageIcon, Video, MessageCircle } from "lucide-react";
 
-export type GenerationMode = "image" | "video";
+export type GenerationMode = "image" | "video" | "chat";
 
 interface GenerationModeSelectorProps {
   mode: GenerationMode;
@@ -11,6 +11,7 @@ interface GenerationModeSelectorProps {
 const modes = [
   { value: "image" as const, label: "Image Generation", icon: ImageIcon },
   { value: "video" as const, label: "Video Generation", icon: Video },
+  { value: "chat" as const, label: "Chat", icon: MessageCircle },
 ];
 
 const GenerationModeSelector = ({ mode, onChange }: GenerationModeSelectorProps) => {
