@@ -206,7 +206,9 @@ const Index = () => {
     if (!user) return;
 
     // Check credits before proceeding (skip for admin/free access)
-    const isVideo = isVideoRequest(text);
+    const isVideo = generationMode === "video" || isVideoRequest(text);
+const isImage = generationMode === "image";
+const isChatMode = generationMode === "chat";
     const bypassCredits = userHasFreeAccess || userIsAdmin || userHasTrial;
     if (!bypassCredits) {
       try {
