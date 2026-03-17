@@ -1,6 +1,6 @@
 import type { Attachment } from "@/components/chat/ChatMessage";
-// updated
-const CHAT_URL = "https://wuktaeebnilsglzhwalx.supabase.co/functions/v1/chat";
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 export interface ChatMessage {
   role: "user" | "assistant";
