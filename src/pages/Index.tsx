@@ -388,7 +388,33 @@ const Index = () => {
         }
       },
       onError: (error) => {
-        toast.error(error);
+        const isCredits = error.toLowerCase().includes("credit") || error.toLowerCase().includes("402") || error.toLowerCase().includes("payment");
+        const isTimeout = error.toLowerCase().includes("timeout") || error.toLowerCase().includes("timed out") || error.toLowerCase().includes("failed to fetch");
+        const isRateLimit = error.toLowerCase().includes("rate limit") || error.toLowerCase().includes("429");
+        
+        if (isCredits) {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>⚡ AI credits exhausted!</span>
+              <span className="text-xs opacity-80">Please add credits to continue generating.</span>
+              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp for updates</a>
+            </div>,
+            { duration: 8000 }
+          );
+        } else if (isTimeout) {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>⏱️ Request timed out</span>
+              <span className="text-xs opacity-80">Image generation can take up to 90 seconds. Please try again.</span>
+            </div>,
+            { duration: 6000 }
+          );
+        } else if (isRateLimit) {
+          toast.error("⏳ Too many requests — please wait a moment and try again.", { duration: 5000 });
+        } else {
+          toast.error(error, { duration: 5000 });
+        }
+        
         setIsLoading(false);
         setStreamingId(null);
         setMessagesMap((prev) => ({
