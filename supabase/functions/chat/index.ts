@@ -210,7 +210,7 @@ serve(async (req) => {
             // Save to gallery_images table
             await supabase
               .from("gallery_images")
-              .insert({ user_id: user.id, prompt, image_url: imageUrl });
+              .insert({ user_id: userId, prompt, image_url: imageUrl });
           }
         }
       } catch (e) {
