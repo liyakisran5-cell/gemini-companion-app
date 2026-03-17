@@ -188,18 +188,13 @@ serve(async (req) => {
       const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       const textContent = data.choices?.[0]?.message?.content || "Here's your generated image!";
 
-      // Try to upload to storage if user is authenticated
+      // Try to upload to storage using already-authenticated userId
       let imageUrl = generatedImage;
       try {
-        const authHeader = req.headers.get("authorization") || "";
-        const token = authHeader.replace("Bearer ", "");
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        const { data: { user } } = await supabase.auth.getUser(token);
-        
-        if (user && generatedImage) {
+        if (userId && generatedImage) {
           const base64Data = generatedImage.replace(/^data:image\/\w+;base64,/, "");
           const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
           const fileName = `${user.id}/${crypto.randomUUID()}.png`;
