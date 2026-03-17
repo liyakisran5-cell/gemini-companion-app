@@ -197,7 +197,7 @@ serve(async (req) => {
         if (userId && generatedImage) {
           const base64Data = generatedImage.replace(/^data:image\/\w+;base64,/, "");
           const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-          const fileName = `${user.id}/${crypto.randomUUID()}.png`;
+          const fileName = `${userId}/${crypto.randomUUID()}.png`;
 
           const { error: uploadError } = await supabase.storage
             .from("gallery")
