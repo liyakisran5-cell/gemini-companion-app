@@ -14,9 +14,8 @@ export interface ImageGenerationResult {
   images: string[];
 }
 
-// Image generation can take 30-90 seconds, so we use a generous timeout
 const IMAGE_TIMEOUT_MS = 120_000; // 2 minutes
-const CHAT_TIMEOUT_MS = 60_000; // 1 minute
+const CHAT_TIMEOUT_MS = 30_000; // 30 seconds for chat mode
 
 async function getAuthToken(): Promise<string> {
   const { supabase } = await import("@/integrations/supabase/client");
@@ -26,12 +25,14 @@ async function getAuthToken(): Promise<string> {
 
 export async function streamChat({
   messages,
+  mode = "image",
   onDelta,
   onDone,
   onError,
   onImageGenerated,
 }: {
   messages: ChatMessage[];
+  mode?: "image" | "chat";
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
@@ -40,7 +41,9 @@ export async function streamChat({
   try {
     const token = await getAuthToken();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
+    // Use shorter timeout for chat mode
+    const timeout = mode === "chat" ? CHAT_TIMEOUT_MS : IMAGE_TIMEOUT_MS;
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     let resp: Response;
     try {
@@ -50,13 +53,13 @@ export async function streamChat({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, mode }),
         signal: controller.signal,
       });
     } catch (fetchErr: any) {
       clearTimeout(timeoutId);
       if (fetchErr.name === "AbortError") {
-        onError("Request timed out. Image generation can take a while — please try again.");
+        onError("Request timed out. Please try again.");
         return;
       }
       throw fetchErr;
