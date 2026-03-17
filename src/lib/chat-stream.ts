@@ -14,6 +14,16 @@ export interface ImageGenerationResult {
   images: string[];
 }
 
+// Image generation can take 30-90 seconds, so we use a generous timeout
+const IMAGE_TIMEOUT_MS = 120_000; // 2 minutes
+const CHAT_TIMEOUT_MS = 60_000; // 1 minute
+
+async function getAuthToken(): Promise<string> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+}
+
 export async function streamChat({
   messages,
   onDelta,
@@ -28,19 +38,30 @@ export async function streamChat({
   onImageGenerated?: (result: ImageGenerationResult) => void;
 }) {
   try {
-    // Import supabase to get user session token
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const token = await getAuthToken();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
 
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ messages }),
-    });
+    let resp: Response;
+    try {
+      resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ messages }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === "AbortError") {
+        onError("Request timed out. Image generation can take a while — please try again.");
+        return;
+      }
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
 
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({ error: "Request failed" }));
@@ -121,8 +142,12 @@ export async function streamChat({
     }
 
     onDone();
-  } catch (e) {
-    onError(e instanceof Error ? e.message : "Connection failed");
+  } catch (e: any) {
+    if (e.name === "AbortError") {
+      onError("Request timed out. Please try again.");
+    } else {
+      onError(e instanceof Error ? e.message : "Connection failed");
+    }
   }
 }
 
@@ -139,18 +164,30 @@ export async function editImage({
   onError: (error: string) => void;
 }) {
   try {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const token = await getAuthToken();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
 
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ action: "edit_image", imageUrl, editPrompt }),
-    });
+    let resp: Response;
+    try {
+      resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: "edit_image", imageUrl, editPrompt }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === "AbortError") {
+        onError("Image editing timed out. Please try again.");
+        return;
+      }
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
 
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({ error: "Request failed" }));
@@ -160,8 +197,12 @@ export async function editImage({
 
     const data: ImageGenerationResult = await resp.json();
     onResult(data);
-  } catch (e) {
-    onError(e instanceof Error ? e.message : "Connection failed");
+  } catch (e: any) {
+    if (e.name === "AbortError") {
+      onError("Image editing timed out. Please try again.");
+    } else {
+      onError(e instanceof Error ? e.message : "Connection failed");
+    }
   }
 }
 
