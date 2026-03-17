@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,20 +8,39 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const CHAT_MODEL = "google/gemini-3-flash-preview";
+const IMAGE_MODEL = "google/gemini-3-pro-image-preview";
 
 const IMAGE_KEYWORDS = [
   "generate an image", "create an image", "make an image",
   "generate a picture", "create a picture", "make a picture",
   "draw me", "draw a", "paint me", "design a",
-  "تصویر بنائیں", "تصویر بناؤ", "تصویر بنا",
-  "फोटो बनाओ", "इमेज बनाओ",
+  "generate image", "create image", "make image",
+  "generate picture", "create picture", "make picture",
+  "generate a photo", "create a photo", "make a photo",
+  "generate photo", "create photo", "make photo",
+  "create thumbnail", "make thumbnail", "generate thumbnail",
+  "create a thumbnail", "make a thumbnail", "generate a thumbnail",
+  "create logo", "make logo", "design logo",
+  "create a logo", "make a logo", "design a logo",
+  "pic of", "photo of", "picture of", "image of",
+  "pic bana", "photo bana", "image bana",
+  "banao", "bana do", "bana dein",
+  "تصویر بنائیں", "تصویر بناؤ", "تصویر بنا", "تصویر بنا دو",
+  "فوٹو بنائیں", "فوٹو بناؤ", "فوٹو بنا",
+  "پک بنائیں", "پک بناؤ", "پک بنا",
+  "لوگو بنائیں", "لوگو بناؤ", "لوگو بنا",
+  "تھمبنیل بنائیں", "تھمبنیل بناؤ", "تھمبنیل بنا",
+  "फोटो बनाओ", "इमेज बनाओ", "तस्वीर बनाओ",
+  "creat", "create pic", "make pic",
 ];
 
 function isImageRequest(messages: any[]): boolean {
   const last = [...messages].reverse().find((m: any) => m.role === "user");
   if (!last) return false;
   const text = typeof last.content === "string" ? last.content : "";
-  return IMAGE_KEYWORDS.some((kw) => text.toLowerCase().includes(kw.toLowerCase()));
+  const lower = text.toLowerCase();
+  return IMAGE_KEYWORDS.some((kw) => lower.includes(kw.toLowerCase()));
 }
 
 serve(async (req) => {
@@ -39,19 +59,155 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { messages } = body;
+    const { messages, action, imageUrl, editPrompt } = body;
 
-    if (isImageRequest(messages)) {
+    // Handle image editing
+    if (action === "edit_image") {
+      const response = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: IMAGE_MODEL,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: editPrompt || "Edit this image" },
+                { type: "image_url", image_url: { url: imageUrl } },
+              ],
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("Image edit error:", response.status, t);
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please wait and try again." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ error: "Image editing failed" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      const editedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const textContent = data.choices?.[0]?.message?.content || "Here's your edited image.";
+
       return new Response(
         JSON.stringify({
           type: "image_generation",
-          content: "Image generation requires Lovable credits. Please upgrade your plan.",
-          images: [],
+          content: textContent,
+          images: editedImage ? [editedImage] : [],
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Handle image generation requests
+    if (isImageRequest(messages)) {
+      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      const prompt = typeof lastUserMsg?.content === "string" ? lastUserMsg.content : "Generate an image";
+
+      const response = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: IMAGE_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("Image generation error:", response.status, t);
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please wait and try again." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        return new Response(
+          JSON.stringify({ error: "Image generation failed" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const textContent = data.choices?.[0]?.message?.content || "Here's your generated image!";
+
+      // Try to upload to storage if user is authenticated
+      let imageUrl = generatedImage;
+      try {
+        const authHeader = req.headers.get("authorization") || "";
+        const token = authHeader.replace("Bearer ", "");
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: { user } } = await supabase.auth.getUser(token);
+        
+        if (user && generatedImage) {
+          const base64Data = generatedImage.replace(/^data:image\/\w+;base64,/, "");
+          const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+          const fileName = `${user.id}/${crypto.randomUUID()}.png`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("gallery")
+            .upload(fileName, imageBytes, { contentType: "image/png" });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from("gallery").getPublicUrl(fileName);
+            imageUrl = urlData.publicUrl;
+
+            // Save to gallery_images table
+            await supabase
+              .from("gallery_images")
+              .insert({ user_id: user.id, prompt, image_url: imageUrl });
+          }
+        }
+      } catch (e) {
+        console.error("Storage upload skipped:", e);
+        // Still return the base64 image even if storage fails
+      }
+
+      return new Response(
+        JSON.stringify({
+          type: "image_generation",
+          content: textContent,
+          images: imageUrl ? [imageUrl] : [],
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Regular chat - streaming
     const response = await fetch(AI_GATEWAY, {
       method: "POST",
       headers: {
@@ -59,7 +215,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: CHAT_MODEL,
         messages: [
           { role: "system", content: "You are NovaMind, a helpful AI assistant. Be friendly and professional." },
           ...messages,
