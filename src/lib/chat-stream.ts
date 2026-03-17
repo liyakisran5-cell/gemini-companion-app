@@ -20,7 +20,10 @@ const CHAT_TIMEOUT_MS = 30_000; // 30 seconds for chat mode
 async function getAuthToken(): Promise<string> {
   const { supabase } = await import("@/integrations/supabase/client");
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!session?.access_token) {
+    throw new Error("Not authenticated. Please log in first.");
+  }
+  return session.access_token;
 }
 
 export async function streamChat({

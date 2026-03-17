@@ -49,6 +49,32 @@ serve(async (req) => {
   }
 
   try {
+    // JWT Authentication - block unauthenticated requests
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
@@ -162,21 +188,16 @@ serve(async (req) => {
       const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       const textContent = data.choices?.[0]?.message?.content || "Here's your generated image!";
 
-      // Try to upload to storage if user is authenticated
+      // Try to upload to storage using already-authenticated userId
       let imageUrl = generatedImage;
       try {
-        const authHeader = req.headers.get("authorization") || "";
-        const token = authHeader.replace("Bearer ", "");
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        const { data: { user } } = await supabase.auth.getUser(token);
-        
-        if (user && generatedImage) {
+        if (userId && generatedImage) {
           const base64Data = generatedImage.replace(/^data:image\/\w+;base64,/, "");
           const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-          const fileName = `${user.id}/${crypto.randomUUID()}.png`;
+          const fileName = `${userId}/${crypto.randomUUID()}.png`;
 
           const { error: uploadError } = await supabase.storage
             .from("gallery")
@@ -189,7 +210,7 @@ serve(async (req) => {
             // Save to gallery_images table
             await supabase
               .from("gallery_images")
-              .insert({ user_id: user.id, prompt, image_url: imageUrl });
+              .insert({ user_id: userId, prompt, image_url: imageUrl });
           }
         }
       } catch (e) {

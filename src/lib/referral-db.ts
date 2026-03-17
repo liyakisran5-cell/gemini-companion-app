@@ -56,6 +56,9 @@ function getTodayDate(): string {
 
 /** Get or create user credits row and return current credits */
 export async function getUserCredits(userId: string): Promise<UserCredits> {
+  // Ensure credits row exists via secure RPC
+  await supabase.rpc("init_user_credits", { _user_id: userId });
+
   const { data } = await supabase
     .from("user_credits" as any)
     .select("image_credits, video_credits, daily_free_used, daily_reset_date")
@@ -63,29 +66,10 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
     .maybeSingle();
 
   if (data) {
-    const credits = data as any;
-    const today = getTodayDate();
-    // Reset daily counter if it's a new day
-    if (credits.daily_reset_date !== today) {
-      await supabase
-        .from("user_credits" as any)
-        .update({ daily_free_used: 0, daily_reset_date: today, updated_at: new Date().toISOString() })
-        .eq("user_id", userId);
-      return { ...credits, daily_free_used: 0, daily_reset_date: today };
-    }
-    return credits;
+    return data as any;
   }
 
-  // Create initial row
-  const today = getTodayDate();
-  await supabase.from("user_credits" as any).insert({
-    user_id: userId,
-    image_credits: 0,
-    video_credits: 0,
-    daily_free_used: 0,
-    daily_reset_date: today,
-  });
-  return { image_credits: 0, video_credits: 0, daily_free_used: 0, daily_reset_date: today };
+  return { image_credits: 0, video_credits: 0, daily_free_used: 0, daily_reset_date: getTodayDate() };
 }
 
 /** Check if user has daily free images remaining */
@@ -98,39 +82,24 @@ export function getDailyFreeRemaining(credits: UserCredits): number {
   return Math.max(0, DAILY_FREE_LIMIT - credits.daily_free_used);
 }
 
-/** Deduct one image credit - uses daily free first, then paid credits */
+/** Deduct one image credit - uses secure server-side RPC */
 export async function useImageCredit(userId: string): Promise<boolean> {
-  const credits = await getUserCredits(userId);
-  
-  // Use daily free first
-  if (credits.daily_free_used < DAILY_FREE_LIMIT) {
-    await supabase
-      .from("user_credits" as any)
-      .update({ daily_free_used: credits.daily_free_used + 1, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
-    return true;
+  const { data, error } = await supabase.rpc("deduct_image_credit", { _user_id: userId });
+  if (error) {
+    console.error("Credit deduction error:", error);
+    return false;
   }
-
-  // Then use paid credits
-  if (credits.image_credits <= 0) return false;
-
-  await supabase
-    .from("user_credits" as any)
-    .update({ image_credits: credits.image_credits - 1, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-  return true;
+  return !!data;
 }
 
-/** Deduct one video credit */
+/** Deduct one video credit - uses secure server-side RPC */
 export async function useVideoCredit(userId: string): Promise<boolean> {
-  const credits = await getUserCredits(userId);
-  if (credits.video_credits <= 0) return false;
-
-  await supabase
-    .from("user_credits" as any)
-    .update({ video_credits: credits.video_credits - 1, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-  return true;
+  const { data, error } = await supabase.rpc("deduct_video_credit", { _user_id: userId });
+  if (error) {
+    console.error("Video credit deduction error:", error);
+    return false;
+  }
+  return !!data;
 }
 
 /** Look up a referral code and return the owner's user_id */
@@ -143,7 +112,7 @@ export async function lookupReferralCode(code: string): Promise<string | null> {
   return (data as any)?.user_id || null;
 }
 
-/** Record a referral and award credits */
+/** Record a referral and award credits via secure RPC */
 export async function recordReferral(referrerId: string, referredId: string): Promise<void> {
   const { error } = await supabase
     .from("referrals" as any)
@@ -157,22 +126,12 @@ export async function recordReferral(referrerId: string, referredId: string): Pr
   const count = await getReferralCount(referrerId);
   const credits = calculateCredits(count);
 
-  const { data: existing } = await supabase
-    .from("user_credits" as any)
-    .select("user_id")
-    .eq("user_id", referrerId)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase
-      .from("user_credits" as any)
-      .update({ ...credits, updated_at: new Date().toISOString() })
-      .eq("user_id", referrerId);
-  } else {
-    await supabase
-      .from("user_credits" as any)
-      .insert({ user_id: referrerId, ...credits });
-  }
+  // Use secure server-side function to grant credits
+  await supabase.rpc("grant_referral_credits", {
+    _user_id: referrerId,
+    _image_credits: credits.image_credits,
+    _video_credits: credits.video_credits,
+  });
 }
 
 /** Get full referral info for a user */
