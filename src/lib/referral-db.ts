@@ -82,27 +82,14 @@ export function getDailyFreeRemaining(credits: UserCredits): number {
   return Math.max(0, DAILY_FREE_LIMIT - credits.daily_free_used);
 }
 
-/** Deduct one image credit - uses daily free first, then paid credits */
+/** Deduct one image credit - uses secure server-side RPC */
 export async function useImageCredit(userId: string): Promise<boolean> {
-  const credits = await getUserCredits(userId);
-  
-  // Use daily free first
-  if (credits.daily_free_used < DAILY_FREE_LIMIT) {
-    await supabase
-      .from("user_credits" as any)
-      .update({ daily_free_used: credits.daily_free_used + 1, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
-    return true;
+  const { data, error } = await supabase.rpc("deduct_image_credit", { _user_id: userId });
+  if (error) {
+    console.error("Credit deduction error:", error);
+    return false;
   }
-
-  // Then use paid credits
-  if (credits.image_credits <= 0) return false;
-
-  await supabase
-    .from("user_credits" as any)
-    .update({ image_credits: credits.image_credits - 1, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-  return true;
+  return !!data;
 }
 
 /** Deduct one video credit */
