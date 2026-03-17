@@ -155,7 +155,6 @@ const Index = () => {
 
   const isVideoRequest = (text: string) => {
     const lower = text.toLowerCase();
-    // Only treat as video if it explicitly mentions "video", "clip", or "animate" + action intent
     const hasVideoWord = /\b(video|clip|animate|animation|movie|film)\b/.test(lower);
     const hasActionWord = /\b(make|create|generate|produce|build|render|show|give|want|need|get|record|shoot)\b/.test(lower);
     if (hasVideoWord && hasActionWord) return true;
@@ -168,7 +167,6 @@ const Index = () => {
     prompt: string,
     settings: VideoSettings
   ) => {
-    // Simulate progress over ~6 seconds
     for (let progress = 0; progress <= 100; progress += 5) {
       await new Promise((r) => setTimeout(r, 300));
       setMessagesMap((prev) => ({
@@ -179,7 +177,6 @@ const Index = () => {
       }));
     }
 
-    // Pick a mock video
     const mockUrl = MOCK_VIDEOS[Math.floor(Math.random() * MOCK_VIDEOS.length)];
 
     setMessagesMap((prev) => ({
@@ -205,12 +202,11 @@ const Index = () => {
   const handleSend = async (text: string, attachments: Attachment[] = []) => {
     if (!user) return;
 
-    // Check credits before proceeding (skip for admin/free access)
-    const isVideo = generationMode === "video" || isVideoRequest(text);
-const isImage = generationMode === "image";
-const isChatMode = generationMode === "chat";
+    const isChatMode = generationMode === "chat";
+    const isVideo = !isChatMode && (generationMode === "video" || isVideoRequest(text));
     const bypassCredits = userHasFreeAccess || userIsAdmin || userHasTrial;
-    if (!bypassCredits) {
+
+    if (!bypassCredits && !isChatMode) {
       try {
         const credits = await getUserCredits(user.id);
         if (isVideo && credits.video_credits <= 0) {
@@ -219,56 +215,45 @@ const isChatMode = generationMode === "chat";
               <span>No video credits!</span>
               <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp Channel for updates</a>
             </div>,
-            { duration: 6000 }
+            { duration: 5000 }
           );
           return;
         }
-        if (!isVideo) {
-          const hasDaily = hasDailyFreeRemaining(credits);
-          const hasPaid = credits.image_credits > 0;
-          if (!hasDaily && !hasPaid) {
-            toast.error(
-              <div className="flex flex-col gap-1">
-                <span>Daily free limit reached! Come back tomorrow or invite friends 🎁</span>
-                <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join our WhatsApp Channel</a>
-              </div>,
-              { duration: 6000 }
-            );
-            return;
-          }
+        if (!isVideo && credits.image_credits <= 0 && !hasDailyFreeRemaining(credits)) {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span>No image credits!</span>
+              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp Channel for updates</a>
+            </div>,
+            { duration: 5000 }
+          );
+          return;
         }
       } catch (e) {
         console.error("Credit check failed", e);
       }
     }
 
-    setIsLoading(true);
-
     let convId = activeConvId;
-
-    // Create conversation in DB if needed
     if (!convId) {
       try {
-        const title = text.length > 30 ? text.slice(0, 30) + "…" : text;
-        const dbConv = await dbCreateConv(user.id, title);
-        convId = dbConv.id;
+        const newConv = await dbCreateConv(user.id, text.slice(0, 50));
+        convId = newConv.id;
         setConversations((prev) => [
-          { id: dbConv.id, title: dbConv.title, timestamp: new Date(dbConv.created_at) },
+          { id: newConv.id, title: newConv.title, timestamp: new Date(newConv.created_at) },
           ...prev,
         ]);
-        setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
         setActiveConvId(convId);
-        setSidebarOpen(false);
+        setMessagesMap((prev) => ({ ...prev, [convId!]: [] }));
       } catch (e) {
-        toast.error("Failed to create conversation");
-        setIsLoading(false);
+        toast.error("Failed to create a conversation");
         return;
       }
     }
 
-    // Save user message to DB
+    const userMsgId = `user-${Date.now()}`;
     const userMsg: Message = {
-      id: `temp-${Date.now()}`,
+      id: userMsgId,
       role: "user",
       content: text,
       attachments: attachments.length > 0 ? attachments : undefined,
@@ -280,81 +265,62 @@ const isChatMode = generationMode === "chat";
     }));
 
     try {
-      const savedId = await saveMessage(convId, user.id, "user", text, attachments);
-      userMsg.id = savedId;
-      setMessagesMap((prev) => ({
-        ...prev,
-        [convId!]: prev[convId!].map((m) =>
-          m.id.startsWith("temp-") && m.content === text ? { ...m, id: savedId } : m
-        ),
-      }));
+      await saveMessage(convId, user.id, "user", text, attachments.length > 0 ? attachments : undefined);
     } catch (e) {
       console.error("Failed to save user message", e);
     }
 
-    // Check if this is a video generation request
-    if (isVideoRequest(text)) {
-      const assistantTempId = `temp-ai-${Date.now()}`;
-      const modelName = videoSettings.model === "sora-2" ? "Sora 2" : "Veo 3.1";
-      const content = `🎬 Generating video with **${modelName}**\n\n**Prompt:** ${text}\n**Settings:** ${videoSettings.resolution} · ${videoSettings.duration}s · ${videoSettings.aspectRatio}`;
-
+    if (isVideo) {
+      if (!bypassCredits) {
+        try { await useVideoCredit(user.id); } catch (e) { console.error("Credit deduction failed", e); }
+      }
+      const assistantMsgId = `assistant-${Date.now()}`;
+      const assistantMsg: Message = {
+        id: assistantMsgId,
+        role: "assistant",
+        content: `Generating video: "${text}"`,
+        videoProgress: 0,
+      };
       setMessagesMap((prev) => ({
         ...prev,
-        [convId!]: [
-          ...(prev[convId!] || []),
-          { id: assistantTempId, role: "assistant" as const, content, videoProgress: 0 },
-        ],
+        [convId!]: [...(prev[convId!] || []), assistantMsg],
       }));
-
-      const capturedConvId = convId!;
-      // Deduct video credit (skip for admin/free access/trial)
-      if (!bypassCredits) {
-        await useVideoCredit(user.id);
-      }
-      simulateVideoGeneration(capturedConvId, assistantTempId, text, videoSettings).then(async () => {
-        setIsLoading(false);
-        try {
-          await saveMessage(capturedConvId, user.id, "assistant", content);
-        } catch (e) {
-          console.error("Failed to save video message", e);
-        }
-      });
+      setIsLoading(true);
+      await simulateVideoGeneration(convId, assistantMsgId, text, videoSettings);
+      setIsLoading(false);
       return;
     }
 
-    // Build API messages
-    const existingMessages = messagesMap[convId!] || [];
-    const apiMessages: ChatMsg[] = existingMessages.map((m) => ({
-      role: m.role,
-      content: m.content,
-      images: m.attachments ? attachmentsToImages(m.attachments) : undefined,
-    }));
-    const images = attachmentsToImages(attachments);
-    apiMessages.push({
-      role: "user",
-      content: text,
-      images: images.length > 0 ? images : undefined,
-    });
-
-    // Create assistant message placeholder
-    const assistantTempId = `temp-ai-${Date.now()}`;
+    const assistantTempId = `assistant-${Date.now()}`;
     setMessagesMap((prev) => ({
       ...prev,
       [convId!]: [...(prev[convId!] || []), { id: assistantTempId, role: "assistant", content: "" }],
     }));
     setStreamingId(assistantTempId);
+    setIsLoading(true);
+
+    const images = attachmentsToImages(attachments);
+    const historyMessages = (messagesMap[convId] || []).filter((m) => m.id !== userMsgId);
+    const apiMessages: ChatMsg[] = [
+      ...historyMessages.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: text, images: images.length > 0 ? images : undefined },
+    ];
+
+    if (!bypassCredits && !isChatMode) {
+      try { await useImageCredit(user.id); } catch (e) { console.error("Credit deduction failed", e); }
+    }
 
     let assistantSoFar = "";
-    const capturedConvId = convId;
 
     await streamChat({
       messages: apiMessages,
+      mode: isChatMode ? "chat" : "image",
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         const captured = assistantSoFar;
         setMessagesMap((prev) => ({
           ...prev,
-          [capturedConvId!]: prev[capturedConvId!].map((m) =>
+          [convId!]: prev[convId!].map((m) =>
             m.id === assistantTempId ? { ...m, content: captured } : m
           ),
         }));
@@ -363,7 +329,7 @@ const isChatMode = generationMode === "chat";
         assistantSoFar = result.content;
         setMessagesMap((prev) => ({
           ...prev,
-          [capturedConvId!]: prev[capturedConvId!].map((m) =>
+          [convId!]: prev[convId!].map((m) =>
             m.id === assistantTempId
               ? { ...m, content: result.content, generatedImages: result.images }
               : m
@@ -373,92 +339,53 @@ const isChatMode = generationMode === "chat";
       onDone: async () => {
         setIsLoading(false);
         setStreamingId(null);
-        // Deduct image credit on successful generation (skip for admin/free access/trial)
-        if (!userHasFreeAccess && !userIsAdmin && !userHasTrial) {
-          await useImageCredit(user.id);
-        }
         try {
-          const savedId = await saveMessage(capturedConvId!, user.id, "assistant", assistantSoFar);
+          const savedId = await saveMessage(convId!, user.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({
             ...prev,
-            [capturedConvId!]: prev[capturedConvId!].map((m) =>
+            [convId!]: prev[convId!].map((m) =>
               m.id === assistantTempId ? { ...m, id: savedId } : m
             ),
           }));
         } catch (e) {
-          console.error("Failed to save assistant message", e);
+          console.error("Failed to save message", e);
         }
       },
       onError: (error) => {
-        const isCredits = error.toLowerCase().includes("credit") || error.toLowerCase().includes("402") || error.toLowerCase().includes("payment");
-        const isTimeout = error.toLowerCase().includes("timeout") || error.toLowerCase().includes("timed out") || error.toLowerCase().includes("failed to fetch");
-        const isRateLimit = error.toLowerCase().includes("rate limit") || error.toLowerCase().includes("429");
-        
-        if (isCredits) {
-          toast.error(
-            <div className="flex flex-col gap-1">
-              <span>⚡ AI credits exhausted!</span>
-              <span className="text-xs opacity-80">Please add credits to continue generating.</span>
-              <a href="https://whatsapp.com/channel/0029Vb7QLUnADTO8fMFTLT3i" target="_blank" rel="noopener noreferrer" className="text-green-500 underline text-xs">📲 Join WhatsApp for updates</a>
-            </div>,
-            { duration: 8000 }
-          );
-        } else if (isTimeout) {
-          toast.error(
-            <div className="flex flex-col gap-1">
-              <span>⏱️ Request timed out</span>
-              <span className="text-xs opacity-80">Image generation can take up to 90 seconds. Please try again.</span>
-            </div>,
-            { duration: 6000 }
-          );
-        } else if (isRateLimit) {
-          toast.error("⏳ Too many requests — please wait a moment and try again.", { duration: 5000 });
-        } else {
-          toast.error(error, { duration: 5000 });
-        }
-        
+        toast.error(error);
         setIsLoading(false);
         setStreamingId(null);
         setMessagesMap((prev) => ({
           ...prev,
-          [capturedConvId!]: prev[capturedConvId!].filter((m) => m.id !== assistantTempId),
+          [convId!]: prev[convId!].filter((m) => m.id !== assistantTempId),
         }));
       },
     });
   };
 
   const handleRegenerate = async (convId: string) => {
-    if (!user || isLoading) return;
-    const msgs = messagesMap[convId] || [];
-    // Find the last user message
-    const lastUserIdx = msgs.map((m) => m.role).lastIndexOf("user");
-    if (lastUserIdx === -1) return;
-    const lastUserMsg = msgs[lastUserIdx];
+    const messages = messagesMap[convId] || [];
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUser) return;
 
-    // Remove the last assistant message
-    const trimmed = msgs.slice(0, msgs.length - 1);
-    setMessagesMap((prev) => ({ ...prev, [convId]: trimmed }));
-
-    // Re-send with existing content
-    setIsLoading(true);
-
-    const apiMessages: ChatMsg[] = trimmed.map((m) => ({
-      role: m.role,
-      content: m.content,
-      images: m.attachments ? attachmentsToImages(m.attachments) : undefined,
-    }));
-
-    const assistantTempId = `temp-ai-${Date.now()}`;
+    const assistantTempId = `assistant-${Date.now()}`;
     setMessagesMap((prev) => ({
       ...prev,
-      [convId]: [...(prev[convId] || []), { id: assistantTempId, role: "assistant" as const, content: "" }],
+      [convId]: [...prev[convId].filter((m) => m.role !== "assistant" || m.id !== messages[messages.length - 1].id), { id: assistantTempId, role: "assistant", content: "" }],
     }));
     setStreamingId(assistantTempId);
+    setIsLoading(true);
+
+    const isChatMode = generationMode === "chat";
+    const apiMessages: ChatMsg[] = messages
+      .filter((m) => m.role === "user")
+      .map((m) => ({ role: "user" as const, content: m.content }));
 
     let assistantSoFar = "";
 
     await streamChat({
       messages: apiMessages,
+      mode: isChatMode ? "chat" : "image",
       onDelta: (chunk) => {
         assistantSoFar += chunk;
         const captured = assistantSoFar;
@@ -484,7 +411,7 @@ const isChatMode = generationMode === "chat";
         setIsLoading(false);
         setStreamingId(null);
         try {
-          const savedId = await saveMessage(convId, user.id, "assistant", assistantSoFar);
+          const savedId = await saveMessage(convId, user!.id, "assistant", assistantSoFar);
           setMessagesMap((prev) => ({
             ...prev,
             [convId]: prev[convId].map((m) =>
@@ -506,7 +433,6 @@ const isChatMode = generationMode === "chat";
       },
     });
   };
-
 
   const handleNewChat = () => {
     setActiveConvId(null);
@@ -625,7 +551,6 @@ const isChatMode = generationMode === "chat";
                       : undefined
                   }
                   onImageEdited={(result) => {
-                    // Add edited image as a new assistant message
                     const editedMsgId = `edited-${Date.now()}`;
                     setMessagesMap((prev) => ({
                       ...prev,
@@ -668,10 +593,18 @@ const isChatMode = generationMode === "chat";
           onSend={handleSend}
           isLoading={isLoading}
           showSuggestions={activeMessages.length === 0}
-          placeholder={generationMode === "video" ? "Describe the video you want..." : generationMode === "chat" ? "Ask me anything..." : "Describe the image you want..."}
+          placeholder={
+            generationMode === "chat"
+              ? "Ask me anything..."
+              : generationMode === "video"
+              ? "Describe the video you want..."
+              : "Describe the image you want..."
+          }
+        />
       </main>
     </div>
   );
 };
 
 export default Index;
+     
