@@ -112,7 +112,7 @@ export async function lookupReferralCode(code: string): Promise<string | null> {
   return (data as any)?.user_id || null;
 }
 
-/** Record a referral and award credits */
+/** Record a referral and award credits via secure RPC */
 export async function recordReferral(referrerId: string, referredId: string): Promise<void> {
   const { error } = await supabase
     .from("referrals" as any)
@@ -126,22 +126,12 @@ export async function recordReferral(referrerId: string, referredId: string): Pr
   const count = await getReferralCount(referrerId);
   const credits = calculateCredits(count);
 
-  const { data: existing } = await supabase
-    .from("user_credits" as any)
-    .select("user_id")
-    .eq("user_id", referrerId)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase
-      .from("user_credits" as any)
-      .update({ ...credits, updated_at: new Date().toISOString() })
-      .eq("user_id", referrerId);
-  } else {
-    await supabase
-      .from("user_credits" as any)
-      .insert({ user_id: referrerId, ...credits });
-  }
+  // Use secure server-side function to grant credits
+  await supabase.rpc("grant_referral_credits", {
+    _user_id: referrerId,
+    _image_credits: credits.image_credits,
+    _video_credits: credits.video_credits,
+  });
 }
 
 /** Get full referral info for a user */
