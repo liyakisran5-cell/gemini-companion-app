@@ -247,6 +247,15 @@ export type Database = {
     }
     Functions: {
       deduct_image_credit: { Args: { _user_id: string }; Returns: boolean }
+      deduct_video_credit: { Args: { _user_id: string }; Returns: boolean }
+      grant_referral_credits: {
+        Args: {
+          _image_credits: number
+          _user_id: string
+          _video_credits: number
+        }
+        Returns: undefined
+      }
       has_active_trial: { Args: { _user_id: string }; Returns: boolean }
       has_free_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
