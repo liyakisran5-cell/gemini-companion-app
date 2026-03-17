@@ -1,5 +1,5 @@
 import type { Attachment } from "@/components/chat/ChatMessage";
-
+// updated
 const CHAT_URL = "https://wuktaeebnilsglzhwalx.supabase.co/functions/v1/chat";
 
 export interface ChatMessage {
