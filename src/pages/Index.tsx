@@ -666,8 +666,7 @@ const Index = () => {
           onSend={handleSend}
           isLoading={isLoading}
           showSuggestions={activeMessages.length === 0}
-          placeholder={generationMode === "video" ? "Describe the video you want..." : "Describe the image you want..."}
-        />
+          placeholder={generationMode === "video" ? "Describe the video you want..." : generationMode === "chat" ? "Ask me anything..." : "Describe the image you want..."}
       </main>
     </div>
   );
