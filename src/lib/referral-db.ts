@@ -56,6 +56,9 @@ function getTodayDate(): string {
 
 /** Get or create user credits row and return current credits */
 export async function getUserCredits(userId: string): Promise<UserCredits> {
+  // Ensure credits row exists via secure RPC
+  await supabase.rpc("init_user_credits", { _user_id: userId });
+
   const { data } = await supabase
     .from("user_credits" as any)
     .select("image_credits, video_credits, daily_free_used, daily_reset_date")
@@ -63,29 +66,10 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
     .maybeSingle();
 
   if (data) {
-    const credits = data as any;
-    const today = getTodayDate();
-    // Reset daily counter if it's a new day
-    if (credits.daily_reset_date !== today) {
-      await supabase
-        .from("user_credits" as any)
-        .update({ daily_free_used: 0, daily_reset_date: today, updated_at: new Date().toISOString() })
-        .eq("user_id", userId);
-      return { ...credits, daily_free_used: 0, daily_reset_date: today };
-    }
-    return credits;
+    return data as any;
   }
 
-  // Create initial row
-  const today = getTodayDate();
-  await supabase.from("user_credits" as any).insert({
-    user_id: userId,
-    image_credits: 0,
-    video_credits: 0,
-    daily_free_used: 0,
-    daily_reset_date: today,
-  });
-  return { image_credits: 0, video_credits: 0, daily_free_used: 0, daily_reset_date: today };
+  return { image_credits: 0, video_credits: 0, daily_free_used: 0, daily_reset_date: getTodayDate() };
 }
 
 /** Check if user has daily free images remaining */
