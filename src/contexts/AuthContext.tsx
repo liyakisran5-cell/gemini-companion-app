@@ -26,21 +26,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (isMounted) setLoading(false);
     }, 8000);
 
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-      } catch (error) {
-        console.error("Auth initialization failed:", error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (!isMounted) return;
@@ -49,6 +34,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     );
+
+    const initializeAuth = async () => {
+      try {
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) => {
+            window.setTimeout(() => reject(new Error("Auth session timeout")), 6000);
+          }),
+        ]);
+
+        if (!isMounted) return;
+
+        const currentSession = sessionResult.data.session;
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      } catch (error) {
+        console.error("Auth initialization failed:", error);
+        if (isMounted) {
+          setSession(null);
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     return () => {
       isMounted = false;
