@@ -1,6 +1,13 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import "./index.css";
+
+// Remove the HTML pre-loader once React takes over
+const removeLoader = () => {
+  const loader = document.getElementById("app-loader");
+  if (loader) loader.remove();
+};
 
 // Auto-recover from blank screen caused by stale service worker
 const recoverFromBlankScreen = () => {
@@ -20,10 +27,15 @@ const recoverFromBlankScreen = () => {
         window.location.reload();
       }
     }
-  }, 12000); // 12s – enough time for normal auth + render
+  }, 5000); // 5s – faster recovery for blank screen
   return () => clearTimeout(timeout);
 };
 
 recoverFromBlankScreen();
+removeLoader();
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
