@@ -20,7 +20,7 @@ const recoverFromBlankScreen = () => {
         window.location.reload();
       }
     }
-  }, 12000); // 12s – enough time for normal auth + render
+  }, 5000); // 5s – faster recovery for blank screen
   return () => clearTimeout(timeout);
 };
 
