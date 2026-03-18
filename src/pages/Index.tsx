@@ -110,9 +110,25 @@ const Index = () => {
       setInitialLoading(false);
       return;
     }
+
+    let isMounted = true;
+    const loadingWatchdog = window.setTimeout(() => {
+      if (isMounted) {
+        console.warn("Conversation loading timed out, continuing without blocking UI");
+        setInitialLoading(false);
+      }
+    }, 7000);
+
     const load = async () => {
       try {
-        const convs = await loadConversations();
+        const convs = await Promise.race([
+          loadConversations(),
+          new Promise<never>((_, reject) =>
+            window.setTimeout(() => reject(new Error("Conversation load timeout")), 6500)
+          ),
+        ]);
+
+        if (!isMounted) return;
         setConversations(
           convs.map((c) => ({
             id: c.id,
@@ -123,10 +139,17 @@ const Index = () => {
       } catch (e) {
         console.error("Failed to load conversations", e);
       } finally {
-        setInitialLoading(false);
+        clearTimeout(loadingWatchdog);
+        if (isMounted) setInitialLoading(false);
       }
     };
+
     load();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(loadingWatchdog);
+    };
   }, [user]);
 
   // Load messages when active conversation changes
